@@ -491,43 +491,54 @@ def _build_ms_registry(
 
 # ── Public API ───────────────────────────────────────────────────────────────
 def build_registry(
-    pdf_path: str,
-    doc_type: str,               # "qp" or "ms"
-    paper_id: str,
+    pdf_path: str | None = None,
+    doc_type: str = "qp",
+    paper_id: str = "",
     y_top: float = 50.0,
     y_bottom: float = 60.0,
     expected_q_nums: list[int] | None = None,
+    doc: fitz.Document | None = None,
 ) -> dict:
     """
-    Parse *pdf_path* and return its registry dict.
+    Parse a PDF and return its registry dict.
+
+    Either *pdf_path* or an already-opened *doc* must be provided.
+    When *doc* is given the caller is responsible for closing it —
+    this function will NOT close it.
 
     Args:
-        pdf_path:         Absolute path to the PDF.
+        pdf_path:         Absolute path to the PDF (used when *doc* is None).
         doc_type:         "qp" or "ms".
         paper_id:         Canonical paper ID e.g. "9709_w25_qp_11".
         y_top:            Points from top to skip (header area).
         y_bottom:         Points from bottom to skip (footer / page-number area).
         expected_q_nums:  For MS — the question numbers found in the matching QP.
+        doc:              Pre-opened (and pre-filtered) fitz.Document. If supplied,
+                          *pdf_path* is used only for logging / source_path metadata.
     """
-    if not os.path.exists(pdf_path):
-        logger.error(f"PDF not found: {pdf_path}")
-        return {}
+    caller_owns_doc = doc is not None   # we must NOT close it if caller gave it
 
-    try:
-        doc = fitz.open(pdf_path)
-    except Exception as exc:
-        logger.error(f"Cannot open {pdf_path}: {exc}")
-        return {}
+    if doc is None:
+        if pdf_path is None or not os.path.exists(pdf_path):
+            logger.error(f"PDF not found: {pdf_path}")
+            return {}
+        try:
+            doc = fitz.open(pdf_path)
+        except Exception as exc:
+            logger.error(f"Cannot open {pdf_path}: {exc}")
+            return {}
 
+    src_path = pdf_path or ""
     logger.info(f"Building registry for {paper_id} ({doc_type.upper()}, {len(doc)} pages)")
 
     try:
         if doc_type.lower() == "qp":
-            registry = _build_qp_registry(doc, pdf_path, paper_id, y_top, y_bottom)
+            registry = _build_qp_registry(doc, src_path, paper_id, y_top, y_bottom)
         else:
-            registry = _build_ms_registry(doc, pdf_path, paper_id, y_top, y_bottom, expected_q_nums)
+            registry = _build_ms_registry(doc, src_path, paper_id, y_top, y_bottom, expected_q_nums)
     finally:
-        doc.close()
+        if not caller_owns_doc:
+            doc.close()
 
     q_count = len(registry.get("questions", []))
     logger.info(f"  -> {q_count} questions detected in {paper_id}")
@@ -542,15 +553,33 @@ def save_registry(registry: dict, path: str) -> None:
     logger.debug(f"Registry saved: {path}")
 
 
-def load_registry_if_cached(path: str) -> dict | None:
-    """Load a registry JSON from disk, returning None if absent or invalid."""
+def load_registry_if_cached(
+    path: str,
+    filter_flags: dict | None = None,
+) -> dict | None:
+    """
+    Load a registry JSON from disk.
+
+    Returns None if absent, corrupt, or if the stored filter_flags do not
+    match the *filter_flags* argument (cache invalidation on flag change).
+    """
     if not os.path.exists(path):
         return None
     try:
         with open(path, "r", encoding="utf-8") as fh:
             data = json.load(fh)
-        if "paper_id" in data and "questions" in data:
-            return data
+        if "paper_id" not in data or "questions" not in data:
+            return None
+        # Cache invalidation: rebuild if filter flags changed
+        if filter_flags is not None:
+            stored = data.get("filter_flags", {})
+            if stored != filter_flags:
+                logger.debug(
+                    f"Cache invalidated for {path}: "
+                    f"stored flags {stored} != current {filter_flags}"
+                )
+                return None
+        return data
     except Exception as exc:
         logger.warning(f"Could not load cached registry {path}: {exc}")
     return None
@@ -560,17 +589,64 @@ def load_registry_if_cached(path: str) -> dict | None:
 def _build_registry_worker(args: tuple) -> tuple[str, dict]:
     """
     Top-level function (must be picklable for ProcessPoolExecutor).
-    Args: (pdf_path, doc_type, paper_id, y_top, y_bottom, registry_path, expected_q_nums)
+
+    Args tuple layout:
+        (pdf_path, doc_type, paper_id, y_top, y_bottom, registry_path,
+         expected_q_nums, remove_blank, remove_formula, remove_additional)
+
     Returns: (paper_id, registry_dict)
     """
-    pdf_path, doc_type, paper_id, y_top, y_bottom, registry_path, expected_q_nums = args
+    (
+        pdf_path, doc_type, paper_id, y_top, y_bottom,
+        registry_path, expected_q_nums,
+        remove_blank, remove_formula, remove_additional,
+    ) = args
 
-    # Try cache first
-    cached = load_registry_if_cached(registry_path)
+    filter_flags = {
+        "remove_blank":      remove_blank,
+        "remove_formula":    remove_formula,
+        "remove_additional": remove_additional,
+    }
+
+    # Try cache first — invalidate if filter flags changed
+    cached = load_registry_if_cached(registry_path, filter_flags=filter_flags)
     if cached:
+        logger.debug(f"Cache hit (filter match): {paper_id}")
         return paper_id, cached
 
-    reg = build_registry(pdf_path, doc_type, paper_id, y_top, y_bottom, expected_q_nums)
+    # Apply page filters BEFORE registry building so blank/formula/additional
+    # pages are never seen by the parser.
+    from auraq2.core.compiler import filter_pdf
+    try:
+        filtered_doc = filter_pdf(pdf_path, remove_blank, remove_formula, remove_additional)
+    except Exception as exc:
+        logger.error(f"filter_pdf failed for {paper_id}: {exc} — falling back to unfiltered")
+        filtered_doc = None
+
+    try:
+        if filtered_doc is not None:
+            reg = build_registry(
+                pdf_path=pdf_path,
+                doc_type=doc_type,
+                paper_id=paper_id,
+                y_top=y_top,
+                y_bottom=y_bottom,
+                expected_q_nums=expected_q_nums,
+                doc=filtered_doc,
+            )
+        else:
+            reg = build_registry(pdf_path, doc_type, paper_id, y_top, y_bottom, expected_q_nums)
+    finally:
+        if filtered_doc is not None:
+            try:
+                filtered_doc.close()
+            except Exception:
+                pass
+
+    # Store the active filter flags so we can detect stale caches later
+    if reg:
+        reg["filter_flags"] = filter_flags
+
     if reg and registry_path:
         save_registry(reg, registry_path)
     return paper_id, reg

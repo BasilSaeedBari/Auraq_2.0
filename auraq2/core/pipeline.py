@@ -169,22 +169,37 @@ def run_pipeline(
         logger.error("No QP files were downloaded. Cannot continue.")
         return False
 
+    # Log the active filter configuration so it is visible in the run log
+    logger.info(
+        f"Page filters active: blank={remove_blank}, "
+        f"formula={remove_formula}, additional={remove_additional}"
+    )
+
     # ── Stage 2: Registry Building (ProcessPoolExecutor) ─────────────────────
     logger.info("Stage 2: Building question registries (parallel) ...")
     _cb("Parsing", 0, len(qp_specs) + len(ms_specs))
 
-    # Build argument tuples for the picklable worker
+    # Build argument tuples for the picklable worker.
+    # Tuple layout: (pdf_path, doc_type, paper_id, y_top, y_bot,
+    #                registry_path, expected_q_nums,
+    #                remove_blank, remove_formula, remove_additional)
     worker_args: list[tuple] = []
     for spec in qp_specs:
         pdf_path  = get_local_path(base_dir, spec)
         reg_path  = get_registry_path(base_dir, spec)
         pid       = paper_id_from_spec(spec)
-        worker_args.append((pdf_path, "qp", pid, qp_top, qp_bot, reg_path, None))
+        worker_args.append((
+            pdf_path, "qp", pid, qp_top, qp_bot, reg_path, None,
+            remove_blank, remove_formula, remove_additional,
+        ))
     for spec in ms_specs:
         pdf_path  = get_local_path(base_dir, spec)
         reg_path  = get_registry_path(base_dir, spec)
         pid       = paper_id_from_spec(spec)
-        worker_args.append((pdf_path, "ms", pid, ms_top, ms_bot, reg_path, None))
+        worker_args.append((
+            pdf_path, "ms", pid, ms_top, ms_bot, reg_path, None,
+            remove_blank, remove_formula, remove_additional,
+        ))
 
     # Use "spawn" context for Windows safety
     ctx = multiprocessing.get_context("spawn")
