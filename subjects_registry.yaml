@@ -266,6 +266,8 @@ Cambridge O-Levels:
           - "Coordinate Geometry of the Circle"
           - "Circular Measure"
           - "Trigonometry"
+          - "Differentiation"
+          - "Integration"
         keyword_rules:
           Functions: ["domain", "range", "one-to-one", "composite", "inverse function", "fg\\(", "gf\\(", "f\\^-1", "g\\^-1", "mapping", "function f", "function g", "defined by", "injective", "surjective", "bijective", "graph of y\\s*=\\s*f", "transformations?", "transformed", "transformation of graphs"]
           Quadratic Functions: ["quadratic", "discriminant", "real roots", "equal roots", "distinct roots", "vertex", "maximum value", "minimum value", "axis of symmetry", "turning point", "range of values of", "completed square", "completing the square", "parabola", "coefficient of x", "b^2\\s*-\\s*4ac", "no real roots", "two real roots", "meets the x-axis", "tangent to the x-axis", "positive definite", "negative definite"]
@@ -277,6 +279,8 @@ Cambridge O-Levels:
           Coordinate Geometry of the Circle: ["equation of a circle", "circle with centre", "radius", "tangent to the circle", "intersection of a line and a circle", "intersecting circles", "centre of the circle", "circle equation", "x^2\\s*\\+\\s*y^2", "x^2\\s*\\+\\s*y^2\\s*\\+\\s*", "circle passing through", "diameter", "chord", "semicircle"]
           Circular Measure: ["radian", "arc length", "sector", "area of a sector", "perimeter of a sector", "angle in radians", "circle of radius", "length of arc", "area of the shaded", "segment", "chord", "radian measure", "π radians", "angle AOB"]
           Trigonometry: ["sin", "cos", "tan", "cosec", "sec", "cot", "sin\\s*\\theta", "cos\\s*\\theta", "tan\\s*\\theta", "solve the equation", "for 0?≤θ≤360", "identity", "prove that", "compound angle", "double angle", "sin 2θ", "cos 2θ", "tan 2θ", "sin(A\\+B)", "cos(A\\-B)", "tan(A\\+B)", "principal value", "general solution", "R sin(θ\\+α)", "R cos(θ\\-α)"]
+          Differentiation: ["differentiation", "derivative", "stationary point", "increasing function", "decreasing function", "rate of change", "maximum point", "minimum point", "tangents?", "normals?", "d/dx", "first derivative", "second derivative", "differentiate", "stationary", "turning", "maximum", "minimum", "turning point"]
+          Integration: ["integration", "integrate", "area of the region", "bounded by the curve", "volume of revolution", "definite integral", "dy/dx", "find the equation of the curve", "bounded by the y-axis", "bounded by the x-axis"]
       "2":
         name: "Paper 2"
         topics:
@@ -290,6 +294,8 @@ Cambridge O-Levels:
           - "Coordinate Geometry of the Circle"
           - "Circular Measure"
           - "Trigonometry"
+          - "Differentiation"
+          - "Integration"
         keyword_rules:
           Functions: ["domain", "range", "one-to-one", "composite", "inverse function", "fg\\(", "gf\\(", "f\\^-1", "g\\^-1", "mapping", "function f", "function g", "defined by", "injective", "surjective", "bijective", "graph of y\\s*=\\s*f", "transformations?", "transformed", "transformation of graphs"]
           Quadratic Functions: ["quadratic", "discriminant", "real roots", "equal roots", "distinct roots", "vertex", "maximum value", "minimum value", "axis of symmetry", "turning point", "range of values of", "completed square", "completing the square", "parabola", "coefficient of x", "b^2\\s*-\\s*4ac", "no real roots", "two real roots", "meets the x-axis", "tangent to the x-axis", "positive definite", "negative definite"]
@@ -301,6 +307,8 @@ Cambridge O-Levels:
           Coordinate Geometry of the Circle: ["equation of a circle", "circle with centre", "radius", "tangent to the circle", "intersection of a line and a circle", "intersecting circles", "centre of the circle", "circle equation", "x^2\\s*\\+\\s*y^2", "x^2\\s*\\+\\s*y^2\\s*\\+\\s*", "circle passing through", "diameter", "chord", "semicircle"]
           Circular Measure: ["radian", "arc length", "sector", "area of a sector", "perimeter of a sector", "angle in radians", "circle of radius", "length of arc", "area of the shaded", "segment", "chord", "radian measure", "π radians", "angle AOB"]
           Trigonometry: ["sin", "cos", "tan", "cosec", "sec", "cot", "sin\\s*\\theta", "cos\\s*\\theta", "tan\\s*\\theta", "solve the equation", "for 0?≤θ≤360", "identity", "prove that", "compound angle", "double angle", "sin 2θ", "cos 2θ", "tan 2θ", "sin(A\\+B)", "cos(A\\-B)", "tan(A\\+B)", "principal value", "general solution", "R sin(θ\\+α)", "R cos(θ\\-α)"]
+          Differentiation: ["differentiation", "derivative", "stationary point", "increasing function", "decreasing function", "rate of change", "maximum point", "minimum point", "tangents?", "normals?", "d/dx", "first derivative", "second derivative", "differentiate", "stationary", "turning", "maximum", "minimum", "turning point"]
+          Integration: ["integration", "integrate", "area of the region", "bounded by the curve", "volume of revolution", "definite integral", "dy/dx", "find the equation of the curve", "bounded by the y-axis", "bounded by the x-axis"]
   "7707":
     name: "Accounting"
     beh_slug: "accounting-7707"

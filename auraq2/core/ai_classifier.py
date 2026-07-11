@@ -18,6 +18,7 @@ Decision logic (heuristic-first hybrid):
 from __future__ import annotations
 
 import json
+import os
 import re
 import time
 
@@ -44,14 +45,32 @@ def _build_batch_prompt(
     questions: list[dict],
     topics: list[str],
     syllabus_name: str,
+    keyword_rules: dict | None = None,
 ) -> str:
     """
     Build the user prompt for batch classification.
     """
-    topics_str = ", ".join(f'"{t}"' for t in topics)
+    kr = keyword_rules or {}
+    topic_desc_list = []
+    for t in topics:
+        rules = kr.get(t, [])
+        cleaned_rules = []
+        for r in rules:
+            r_clean = r.split('|')[0].replace('\\b', '').replace('\\', '').strip()
+            if r_clean:
+                cleaned_rules.append(r_clean)
+        
+        if cleaned_rules:
+            desc = f'- "{t}": typically contains terms like {", ".join(cleaned_rules[:12])}'
+        else:
+            desc = f'- "{t}"'
+        topic_desc_list.append(desc)
+        
+    topics_desc_str = "\n".join(topic_desc_list)
 
     lines = [
-        f'You are an examiner. Classify each question from "{syllabus_name}" into exactly one of these topics: [{topics_str}].',
+        f'You are an examiner. Classify each question from "{syllabus_name}" into exactly one of these topics:',
+        topics_desc_str,
         'If none fit, use "Unclassified".',
         'Output a JSON object with a key "classifications" that is an array of objects.',
         'Each object must have "q_num" (int), "topic" (string), and "confidence" (float 0.0-1.0).',
@@ -64,7 +83,7 @@ def _build_batch_prompt(
     ]
 
     for q in questions:
-        snippet = (q.get("text_snippet") or "").replace("\n", " ")[:600]
+        snippet = (q.get("text_snippet") or "").replace("\n", " ")[:1000]
         lines.append(f'Q{q["q_num"]}: {snippet}')
 
     return "\n".join(lines)
@@ -393,6 +412,8 @@ def classify_paper_batch(
     keyword_rules: dict | None = None,
     confidence_threshold: float = 0.80,   # raised from 0.70
     heuristic_fallback_score: int = 6,
+    save_ai_debug: bool = False,
+    debug_dir: str = "",
 ) -> None:
     """
     Classify all questions in *registry* using Groq (batch) + heuristic.
@@ -436,8 +457,25 @@ def classify_paper_batch(
     # ── Step 2: Groq batch call ──────────────────────────────────────────────
     ai_results: dict[int, tuple[str, float]] = {}
     if groq_key:
-        prompt = _build_batch_prompt(questions, topics, syllabus_name)
+        prompt = _build_batch_prompt(questions, topics, syllabus_name, kr)
         raw    = _call_groq_batch(prompt, groq_key, groq_model)
+        
+        # Save AI debug info if requested
+        if save_ai_debug and debug_dir:
+            try:
+                os.makedirs(debug_dir, exist_ok=True)
+                paper_id = registry.get("paper_id", "unknown_paper")
+                # Prompt file
+                prompt_path = os.path.join(debug_dir, f"{paper_id}_ai_prompt.txt")
+                with open(prompt_path, "w", encoding="utf-8") as f:
+                    f.write(prompt)
+                # Response file
+                resp_path = os.path.join(debug_dir, f"{paper_id}_ai_response.txt")
+                with open(resp_path, "w", encoding="utf-8") as f:
+                    f.write(raw if raw else "GROQ CALL FAILED (NONE)")
+            except Exception as e:
+                logger.error(f"Failed to save AI debug logs: {e}")
+
         if raw:
             q_nums     = [q["q_num"] for q in questions]
             ai_results = _parse_batch_response(raw, topics, q_nums)

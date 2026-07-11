@@ -59,6 +59,8 @@ Examples:
                         help="Max registry-builder processes (default: 4)")
     parser.add_argument("--verbose", "-v", action="count", default=0,
                         help="Increase verbosity (-v = DEBUG)")
+    parser.add_argument("--save-ai-debug", action="store_true",
+                        help="Save AI prompts and responses to disk for debugging")
 
     return parser.parse_args()
 

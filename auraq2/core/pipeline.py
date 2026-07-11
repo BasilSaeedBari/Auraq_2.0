@@ -81,6 +81,8 @@ def run_pipeline(
     max_download_workers: int = 10,
     max_registry_workers: int = 4,
     progress_callback: Optional[Callable[[str, int, int], None]] = None,
+    sources: Optional[list[str]] = None,
+    save_ai_debug: bool = False,
 ) -> bool:
     """
     Run the full Auraq 2.0 pipeline for one paper component.
@@ -101,8 +103,9 @@ def run_pipeline(
         "General", "download_directory",
         fallback=os.path.join(os.path.expanduser("~"), "Downloads", "Auraq2"),
     )
-    sources  = [s.strip() for s in
-                config.get("General", "sources_order", fallback="papacambridge,bestexamhelp,dynamicpapers").split(",")]
+    if sources is None:
+        sources  = [s.strip() for s in
+                    config.get("General", "sources_order", fallback="papacambridge,bestexamhelp,dynamicpapers").split(",")]
     conf_threshold = float(config.get("AI", "batch_confidence_threshold", fallback="0.80"))
     h_score        = int(config.get("AI", "heuristic_fallback_score",     fallback="6"))
     strong_h_score = int(config.get("AI", "strong_heuristic_score",       fallback="12"))
@@ -270,10 +273,12 @@ def run_pipeline(
             classify_paper_heuristics(reg, topics, kw_rules, h_score)
         elif ai_mode == "batch" and groq_api_key:
             classify_paper_batch(reg, topics, syllabus_name, groq_api_key,
-                                 groq_model, kw_rules, conf_threshold, h_score)
+                                 groq_model, kw_rules, conf_threshold, h_score,
+                                 save_ai_debug, os.path.join(base_dir, "ai_debug"))
         else:  # hybrid
             classify_paper_batch(reg, topics, syllabus_name, groq_api_key or "",
-                                 groq_model, kw_rules, conf_threshold, h_score)
+                                 groq_model, kw_rules, conf_threshold, h_score,
+                                 save_ai_debug, os.path.join(base_dir, "ai_debug"))
         # Persist updated registry (now has topic + confidence)
         for spec in qp_specs:
             if paper_id_from_spec(spec) == pid:

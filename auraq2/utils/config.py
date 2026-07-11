@@ -87,6 +87,9 @@ def save_config(
     remove_additional: bool,
     remove_formula: bool,
     ai_mode: str = "hybrid",
+    confidence_threshold: float = 0.80,
+    heuristic_fallback_score: int = 6,
+    strong_ai_threshold: float = 0.90,
 ) -> None:
     """Persist updated user settings."""
     os.makedirs(_CONFIG_DIR, exist_ok=True)
@@ -106,6 +109,9 @@ def save_config(
     if "AI" not in config:
         config["AI"] = {}
     config["AI"]["ai_mode"] = ai_mode
+    config["AI"]["batch_confidence_threshold"] = str(confidence_threshold)
+    config["AI"]["heuristic_fallback_score"] = str(heuristic_fallback_score)
+    config["AI"]["strong_ai_threshold"] = str(strong_ai_threshold)
 
     _write(config)
 

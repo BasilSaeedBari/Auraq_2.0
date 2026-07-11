@@ -64,6 +64,8 @@ def run_cli(args) -> None:
             max_download_workers=args.workers_dl,
             max_registry_workers=args.workers_cpu,
             progress_callback=_cb,
+            sources=args.sources.split(",") if args.sources else None,
+            save_ai_debug=args.save_ai_debug,
         )
         sys.exit(0 if success else 1)
     except Exception as exc:

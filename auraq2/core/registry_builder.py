@@ -194,6 +194,25 @@ def _get_ms_question_starts(
     cached_header_x0: float | None = None
     header_found_once = False
 
+    # Pass 1: Scan for the header row anywhere in the document
+    for p in range(start_page, end_page + 1):
+        page = doc[p]
+        header_y1 = _get_ms_header_y1(page)
+        if header_y1 is not None:
+            cached_header_y1 = header_y1
+            header_found_once = True
+            for b in page.get_text("blocks"):
+                x0, y0, x1, y1, text, *_ = b
+                if "Question" in text and ("Answer" in text or "Scheme" in text) and "Marks" in text:
+                    vx0, *_ = get_visual_coords(x0, y0, x1, y1, page)
+                    cached_header_x0 = vx0
+                    break
+            break
+
+    if not header_found_once:
+        logger.warning("No 'Question | Answer | Marks' header found in Marking Scheme. Using page-layout fallback.")
+
+    # Pass 2: Process pages
     for p in range(start_page, end_page + 1):
         page = doc[p]
         
@@ -204,21 +223,20 @@ def _get_ms_question_starts(
 
         header_y1 = _get_ms_header_y1(page)
         if header_y1 is not None:
-            cached_header_y1 = header_y1
-            header_found_once = True
-            # Find header x0 for column alignment check
+            current_hy1 = header_y1
+            current_hx0 = None
             for b in page.get_text("blocks"):
                 x0, y0, x1, y1, text, *_ = b
                 if "Question" in text and ("Answer" in text or "Scheme" in text) and "Marks" in text:
                     vx0, *_ = get_visual_coords(x0, y0, x1, y1, page)
-                    cached_header_x0 = vx0
+                    current_hx0 = vx0
                     break
+            if current_hx0 is None:
+                current_hx0 = cached_header_x0 if cached_header_x0 is not None else page.rect.width * 0.05
+        else:
+            current_hy1 = cached_header_y1 if cached_header_y1 is not None else 80.0
+            current_hx0 = cached_header_x0 if cached_header_x0 is not None else page.rect.width * 0.05
 
-        if not header_found_once:
-            continue
-
-        current_hy1 = cached_header_y1 if cached_header_y1 is not None else 80.0
-        current_hx0 = cached_header_x0 if cached_header_x0 is not None else page.rect.x1 * 0.05
         bottom_vis  = page.rect.y1 - y_bottom_margin
 
         for b in page.get_text("blocks"):
@@ -228,7 +246,9 @@ def _get_ms_question_starts(
             if vy0 <= current_hy1 or vy0 > bottom_vis:
                 continue
             # Must be close to the Question column horizontal position
-            if not (5.0 <= (vx0 - current_hx0) <= 40.0):
+            col_min = -15.0 if not header_found_once else 5.0
+            col_max = 50.0 if not header_found_once else 40.0
+            if not (col_min <= (vx0 - current_hx0) <= col_max):
                 continue
 
             clean = text.strip()
@@ -398,9 +418,16 @@ def _build_qp_registry(
         q_regions  = _make_regions(doc, q_page, q_y0, q_end_page, q_text_end, y_top, y_bottom)
 
         snippet = ""
-        for blk in q_blocks[:3]:
-            snippet += blk.text + " "
-        snippet = snippet.strip()[:300]
+        first = True
+        for blk in q_blocks[:10]:
+            text = blk.text
+            if first:
+                m = _RE_Q_NUM.match(text)
+                if m:
+                    text = text[m.end():].strip()
+                first = False
+            snippet += text + " "
+        snippet = snippet.strip()[:1000]
 
         questions_out.append({
             "q_num":      q_num,

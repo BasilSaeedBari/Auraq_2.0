@@ -79,7 +79,7 @@ class PreferencesWindow(tk.Toplevel):
     def __init__(self, parent: tk.Widget) -> None:
         super().__init__(parent, bg=COLOR_BG)
         self.title("Preferences — Auraq 2.0")
-        self.geometry("560x450")
+        self.geometry("560x520")
         self.resizable(False, False)
         self.transient(parent)
         self.grab_set()
@@ -143,8 +143,42 @@ class PreferencesWindow(tk.Toplevel):
         self._sources_var = tk.StringVar(value=self._config.get("General", "sources_order", fallback=""))
         _entry(8, self._sources_var)
 
+        # Row 9: AI Thresholds Row
+        thresh_frm = tk.Frame(frm, bg=COLOR_BG)
+        thresh_frm.grid(row=9, column=0, columnspan=2, sticky="ew", pady=(0, 18))
+        thresh_frm.columnconfigure(0, weight=1)
+        thresh_frm.columnconfigure(1, weight=1)
+        thresh_frm.columnconfigure(2, weight=1)
+
+        # Col 0: AI Confidence
+        c0 = tk.Frame(thresh_frm, bg=COLOR_BG)
+        c0.grid(row=0, column=0, sticky="ew", padx=(0, 10))
+        tk.Label(c0, text="Min AI Conf (0-1):", bg=COLOR_BG, fg=COLOR_WHITE,
+                 font=("Segoe UI", 9, "bold")).pack(anchor="w", pady=(0, 2))
+        self._conf_var = tk.StringVar(value=self._config.get("AI", "batch_confidence_threshold", fallback="0.80"))
+        tk.Entry(c0, textvariable=self._conf_var, bg=COLOR_CARD, fg=COLOR_WHITE,
+                 bd=0, relief="flat", font=("Segoe UI", 10), width=10).pack(fill="x", ipady=4)
+
+        # Col 1: Heuristic Fallback Score
+        c1 = tk.Frame(thresh_frm, bg=COLOR_BG)
+        c1.grid(row=0, column=1, sticky="ew", padx=(5, 5))
+        tk.Label(c1, text="Heuristic Min Score:", bg=COLOR_BG, fg=COLOR_WHITE,
+                 font=("Segoe UI", 9, "bold")).pack(anchor="w", pady=(0, 2))
+        self._h_score_var = tk.StringVar(value=self._config.get("AI", "heuristic_fallback_score", fallback="6"))
+        tk.Entry(c1, textvariable=self._h_score_var, bg=COLOR_CARD, fg=COLOR_WHITE,
+                 bd=0, relief="flat", font=("Segoe UI", 10), width=10).pack(fill="x", ipady=4)
+
+        # Col 2: Strong AI Threshold
+        c2 = tk.Frame(thresh_frm, bg=COLOR_BG)
+        c2.grid(row=0, column=2, sticky="ew", padx=(10, 0))
+        tk.Label(c2, text="Strong AI Threshold:", bg=COLOR_BG, fg=COLOR_WHITE,
+                 font=("Segoe UI", 9, "bold")).pack(anchor="w", pady=(0, 2))
+        self._strong_ai_var = tk.StringVar(value=self._config.get("AI", "strong_ai_threshold", fallback="0.90"))
+        tk.Entry(c2, textvariable=self._strong_ai_var, bg=COLOR_CARD, fg=COLOR_WHITE,
+                 bd=0, relief="flat", font=("Segoe UI", 10), width=10).pack(fill="x", ipady=4)
+
         btn_row = tk.Frame(frm, bg=COLOR_BG)
-        btn_row.grid(row=9, column=0, columnspan=2, sticky="e")
+        btn_row.grid(row=10, column=0, columnspan=2, sticky="e")
         StyledButton(btn_row, text="Cancel",          command=self.destroy,      is_primary=False).pack(side="left", padx=8)
         StyledButton(btn_row, text="Save Preferences", command=self._save, is_primary=True).pack(side="right")
 
@@ -155,6 +189,14 @@ class PreferencesWindow(tk.Toplevel):
 
     def _save(self) -> None:
         cfg = load_config()
+        try:
+            conf_val = float(self._conf_var.get())
+            h_val = int(self._h_score_var.get())
+            strong_ai_val = float(self._strong_ai_var.get())
+        except ValueError:
+            messagebox.showerror("Error", "AI Threshold values must be numbers (e.g. 0.80, 6, 0.90)")
+            return
+
         save_config(
             download_dir=self._dir_var.get(),
             sources=self._sources_var.get(),
@@ -163,6 +205,10 @@ class PreferencesWindow(tk.Toplevel):
             remove_blank=cfg.getboolean("Filters", "remove_blank", fallback=True),
             remove_additional=cfg.getboolean("Filters", "remove_additional", fallback=True),
             remove_formula=cfg.getboolean("Filters", "remove_formula", fallback=False),
+            ai_mode=cfg.get("AI", "ai_mode", fallback="hybrid"),
+            confidence_threshold=conf_val,
+            heuristic_fallback_score=h_val,
+            strong_ai_threshold=strong_ai_val,
         )
         messagebox.showinfo("Saved", "Preferences saved successfully.")
         self.destroy()
