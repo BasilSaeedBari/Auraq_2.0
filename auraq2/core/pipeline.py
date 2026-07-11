@@ -22,6 +22,7 @@ from __future__ import annotations
 import multiprocessing
 import os
 import json
+import time
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
 from typing import Callable, Optional
 
@@ -249,6 +250,11 @@ def run_pipeline(
                 reg_path = get_registry_path(base_dir, spec)
                 save_registry(reg, reg_path)
                 break
+        
+        # Pacing delay between batch API calls to smooth TPM usage and avoid rate limits
+        if ai_mode != "heuristics" and groq_api_key:
+            time.sleep(3.0)
+
         _cb("Classifying", idx + 1, len(qp_registries))
 
     # ── Stage 4: Collect question records ─────────────────────────────────────

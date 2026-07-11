@@ -64,10 +64,15 @@ def _build_batch_prompt(
         "  Q: 'A sector of a circle has radius 8 cm and arc 12 cm. Find the area.' -> topic: Circular measure",
         "  Q: 'Show that the sum of the arithmetic progression is ...' -> topic: AP",
         "",
-        "Return a JSON object with key 'classifications' containing one entry per question:",
+        "STRICT JSON OUTPUT REQUIREMENT:",
+        "You must output ONLY a valid JSON object with the key 'classifications'.",
+        "The JSON object must contain an array of objects, each with exactly three keys: 'q_num' (int), 'topic' (string), and 'confidence' (float).",
+        "Do not include any other text, commentary, explanations, or markdown fences (do not wrap in ```json).",
+        "",
+        "Expected JSON Schema:",
         "{",
         '  "classifications": [',
-        '    {"q_num": <int>, "topic": "<exact topic from list>", "confidence": <float 0.0-1.0>},',
+        '    {"q_num": <int>, "topic": "<exact topic from valid list>", "confidence": <float 0.0-1.0>},',
         "    ...",
         "  ]",
         "}",
@@ -86,9 +91,9 @@ def _build_batch_prompt(
 # --------------------------------------------------------------------------- #
 # Groq API call                                                                  #
 # --------------------------------------------------------------------------- #
-def _call_groq_batch(prompt: str, groq_key: str, model: str) -> str | None:
+def _call_groq_batch(prompt: str, groq_key: str, model: str, max_retries: int = 3) -> str | None:
     """
-    Send a batch classification request to Groq.
+    Send a batch classification request to Groq with exponential backoff for retries.
     Returns the raw response string or None on failure.
     """
     headers = {
@@ -115,16 +120,35 @@ def _call_groq_batch(prompt: str, groq_key: str, model: str) -> str | None:
         "top_p": 1.0,
     }
 
-    try:
-        time.sleep(REQUEST_DELAY)
-        r = requests.post(GROQ_API_URL, headers=headers, json=payload, timeout=30)
-        if r.status_code == 200:
-            raw = r.json()["choices"][0]["message"]["content"].strip()
-            logger.debug(f"Groq raw response: {raw[:500]}")
-            return raw
-        logger.warning(f"Groq returned HTTP {r.status_code}: {r.text[:200]}")
-    except Exception as exc:
-        logger.error(f"Groq API error: {exc}")
+    for attempt in range(max_retries):
+        delay = REQUEST_DELAY * (2 ** attempt)
+        try:
+            time.sleep(delay)
+            r = requests.post(GROQ_API_URL, headers=headers, json=payload, timeout=30)
+            if r.status_code == 200:
+                raw = r.json()["choices"][0]["message"]["content"].strip()
+                logger.debug(f"Groq raw response: {raw[:500]}")
+                return raw
+            
+            if r.status_code == 429:
+                logger.warning(
+                    f"Groq rate limit hit (429). "
+                    f"Retrying in {delay * 2:.1f}s (attempt {attempt + 1}/{max_retries})..."
+                )
+                continue
+            elif r.status_code >= 500:
+                logger.warning(
+                    f"Groq server error ({r.status_code}). "
+                    f"Retrying in {delay * 2:.1f}s (attempt {attempt + 1}/{max_retries})..."
+                )
+                continue
+            
+            logger.warning(f"Groq returned HTTP {r.status_code}: {r.text[:200]}")
+            break
+        except Exception as exc:
+            logger.error(f"Groq API error on attempt {attempt + 1}: {exc}")
+            if attempt < max_retries - 1:
+                continue
     return None
 
 
@@ -219,14 +243,27 @@ def _parse_batch_response(
 # Heuristic scoring                                                              #
 # --------------------------------------------------------------------------- #
 def _heuristic_score(text: str, keyword_rules: dict) -> dict[str, int]:
-    """Return a dict of topic -> cumulative keyword match score."""
+    """Return a dict of topic -> cumulative score (boolean matching per rule with word boundaries)."""
     text_lower = text.lower()
     scores: dict[str, int] = {}
     for topic, rules in keyword_rules.items():
         s = 0
         for rule in rules:
             try:
-                s += len(re.findall(rule, text_lower)) * 2
+                # Add word boundaries to avoid partial word match (e.g. "sin" inside "since")
+                pattern = rule
+                if pattern and pattern[0].isalnum():
+                    pattern = r'\b' + pattern
+                if pattern:
+                    last = pattern[-1]
+                    if last.isalnum():
+                        pattern = pattern + r'\b'
+                    elif last in ('?', '*', '+') and len(pattern) > 1 and pattern[-2].isalnum():
+                        pattern = pattern + r'\b'
+                
+                # Boolean matching: check presence instead of frequency to prevent keyword spamming
+                if re.search(pattern, text_lower, re.IGNORECASE):
+                    s += 2
             except Exception:
                 pass
         scores[topic] = s

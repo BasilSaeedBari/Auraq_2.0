@@ -35,16 +35,16 @@ Cambridge A-Levels:
           - "Integration"
         keyword_rules:
           Quadratics: ["quadratic", "discriminant", "real roots", "no real roots", "distinct roots", "completed square", "completing the square", "parabola", "vertex", "meets the curve at a single point", "tangent to the curve"]
-          Functions: ["domain", "range", "composite", "inverse function", "one-to-one", "fg\\(x\\)", "gf\\(x\\)", "f\\^-1", "g\\^-1", "transformations?", "transformed", "graph of y\\s*=\\s*f\\(x\\)"]
-          Coordinate geometry: ["coordinate geometry", "perpendicular bisector", "gradient of", "midpoint", "straight line", "passes through"]
+          Functions: ["domain", "range", "composite", "composite function", "inverse function", "one-to-one", "fg\\(x\\)", "gf\\(x\\)", "f\\^-1", "g\\^-1", "transformations?", "transformed", "graph of y\\s*=\\s*f\\(x\\)", "mapping", "transformation of graphs"]
+          Coordinate geometry: ["coordinate geometry", "perpendicular bisector", "gradient of", "midpoint", "straight line", "passes through", "distance between", "equation of the line", "gradient", "intercept", "y-intercept", "x-intercept"]
           Coordinate geometry of Circles: ["equation of the circle", "centre of the circle", "radius of the circle", "tangent to the circle"]
           Circular measure: ["circular measure", "sector", "arc length", "radians?", "perimeter of the shaded", "area of the shaded", "chord", "segment", "perimeter of the region", "area of the region", "angle poq"]
-          Trigonometry: ["trigonometric", "prove the identity", "solve the equation for", "sin", "cos", "tan", "cosec", "sec", "cot"]
-          AP: ["arithmetic progression", "sum of the first", "common difference"]
-          GP: ["geometric progression", "sum to infinity", "common ratio"]
-          Binomial: ["binomial expansion", "coefficient of", "term independent of", "expansion of"]
-          Differentiation: ["differentiation", "derivative", "stationary point", "increasing function", "decreasing function", "rate of change", "maximum point", "minimum point", "tangents?", "normals?"]
-          Integration: ["integration", "integrate", "area of the region", "bounded by the curve", "volume of revolution", "definite integral", "dy/dx", "find the equation of the curve"]
+          Trigonometry: ["trigonometric", "prove the identity", "solve the equation for", "sin", "cos", "tan", "cosec", "sec", "cot", "trigonometry", "sine", "cosine", "tangent", "sin x", "cos x", "tan x", "sin \\theta", "cos \\theta", "tan \\theta"]
+          AP: ["arithmetic progression", "sum of the first", "common difference", "arithmetic series"]
+          GP: ["geometric progression", "sum to infinity", "common ratio", "geometric series"]
+          Binomial: ["binomial expansion", "coefficient of", "term independent of", "expansion of", "binomial theorem"]
+          Differentiation: ["differentiation", "derivative", "stationary point", "increasing function", "decreasing function", "rate of change", "maximum point", "minimum point", "tangents?", "normals?", "d/dx", "first derivative", "second derivative"]
+          Integration: ["integration", "integrate", "area of the region", "bounded by the curve", "volume of revolution", "definite integral", "dy/dx", "find the equation of the curve", "bounded by the y-axis", "bounded by the x-axis"]
       "2":
         name: "Pure Mathematics 2"
         topics:
