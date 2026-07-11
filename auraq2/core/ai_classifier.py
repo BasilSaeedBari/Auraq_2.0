@@ -365,5 +365,61 @@ def classify_paper_batch(
 
         q["topic"]      = final
         q["confidence"] = round(conf, 3)
-        logger.debug(f"  Q{qn}: {final} ({conf:.2f}) [{reason}] "
-                     f"ai=({ai_topic},{ai_conf:.2f}) h=({h_topic},{h_score})")
+
+        # Store intermediate values for summary logging; strip with _ prefix
+        # so they are clearly internal and ignored by the registry serialiser.
+        q["_h_topic"]  = h_topic
+        q["_h_score"]  = h_score
+        q["_ai_topic"] = ai_topic
+        q["_ai_conf"]  = round(ai_conf, 3)
+        q["_reason"]   = reason
+
+    # ── Step 4: log summary table ────────────────────────────────────────────
+    _log_classification_summary(questions, registry["paper_id"])
+
+
+# --------------------------------------------------------------------------- #
+# Classification summary logger                                                  #
+# --------------------------------------------------------------------------- #
+def _log_classification_summary(questions: list[dict], paper_id: str) -> None:
+    """
+    Print a compact ASCII table of classification results at INFO level.
+    Fields: Q | Final Topic | Conf | Heuristic (score) | AI (conf) | Reason
+    The temporary _-prefixed fields are removed from the question dicts afterwards.
+    """
+    COL_TOPIC = 22
+    COL_H     = 22
+    COL_AI    = 18
+    COL_R     = 20
+
+    sep = (
+        f"{'':->3}-+-{'':->{COL_TOPIC}}-+-{'':->5}-+"
+        f"-{'':->{COL_H}}-+-{'':->{COL_AI}}-+-{'':->{COL_R}}-"
+    )
+    header = (
+        f"{'Q':>3} | {'Final Topic':<{COL_TOPIC}} | {'Conf':>5} |"
+        f" {'Heuristic (score)':<{COL_H}} | {'AI topic (conf)':<{COL_AI}} | {'Reason':<{COL_R}}"
+    )
+
+    rows = [f"Classification summary -- {paper_id}:", header, sep]
+
+    for q in questions:
+        qn       = q["q_num"]
+        topic    = q.get("topic", "Unclassified")
+        conf     = q.get("confidence", 0.0)
+        h_topic  = q.pop("_h_topic",  "N/A")
+        h_score  = q.pop("_h_score",  0)
+        ai_topic = q.pop("_ai_topic", "N/A")
+        ai_conf  = q.pop("_ai_conf",  0.0)
+        reason   = q.pop("_reason",   "")
+
+        h_cell  = f"{h_topic[:18]} ({h_score:>2})"
+        ai_cell = f"{(ai_topic or '-')[:12]} ({ai_conf:.2f})"
+
+        rows.append(
+            f"{qn:>3} | {topic:<{COL_TOPIC}} | {conf:>5.2f} |"
+            f" {h_cell:<{COL_H}} | {ai_cell:<{COL_AI}} | {reason:<{COL_R}}"
+        )
+
+    rows.append(sep)
+    logger.info("\n".join(rows))

@@ -19,6 +19,7 @@ def insert_regions_into_pdf(
     src_doc: fitz.Document,
     regions: list[dict],
     fallback_pages: tuple[int, int] | None = None,
+    label: str = "",
 ) -> int:
     """
     Insert clipped page regions from src_doc into dest_doc.
@@ -27,9 +28,27 @@ def insert_regions_into_pdf(
 
     If regions is empty and fallback_pages is provided, insert full pages instead.
 
+    When *label* is given (e.g. "9709_w24_qp_11 Q3"), a small grey stamp is
+    printed at the bottom-left of every inserted page for source traceability.
+
     Returns the number of pages added to dest_doc.
     """
     added = 0
+
+    def _stamp(page: fitz.Page) -> None:
+        if not label:
+            return
+        h = page.rect.height
+        w = page.rect.width
+        stamp_rect = fitz.Rect(6, h - 14, min(w - 6, 6 + len(label) * 4.2), h - 4)
+        page.insert_textbox(
+            stamp_rect,
+            label,
+            fontsize=5.5,
+            fontname="helv",
+            color=(0.55, 0.55, 0.55),
+            align=fitz.TEXT_ALIGN_LEFT,
+        )
 
     if regions:
         for reg in regions:
@@ -55,12 +74,15 @@ def insert_regions_into_pdf(
                 p_idx,
                 clip=clip,
             )
+            _stamp(dest_page)
             added += 1
 
     elif fallback_pages:
         start, end = fallback_pages
         for p_idx in range(start, end + 1):
             dest_doc.insert_pdf(src_doc, from_page=p_idx, to_page=p_idx)
+            # stamp the page we just inserted (it is now the last page)
+            _stamp(dest_doc[-1])
             added += 1
 
     return added

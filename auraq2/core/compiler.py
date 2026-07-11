@@ -53,20 +53,66 @@ def parse_sort_key(filename: str) -> tuple:
 
 # ── Page filters ─────────────────────────────────────────────────────────────
 _BLANK_MARKERS    = {"BLANK PAGE", "This page is intentionally left blank"}
-_FORMULA_MARKERS  = {
-    "Mathematical Formulae", "Formula List", "Stefan\u2013Boltzmann constant",
-    "Important values, constants and standards", "The Periodic Table of Elements",
+_FORMULA_MARKERS: set[str] = {
+    # Standard Cambridge headers
+    "Mathematical Formulae",
+    "Formula List",
+    "List of Formulae",
+    "MF19",
+    "MF10",
+    # Physics / science constant sheets
+    "Stefan-Boltzmann constant",
+    "Important values, constants and standards",
+    "The Periodic Table of Elements",
+    # Cambridge A-Level Pure Math formula sheet terms
+    "Quadratic Equation",
+    "Binomial Theorem",
+    "Arithmetic series",
+    "Geometric series",
+    "Identities",
+    "Formulae for ΔABC",
+    "Maclaurin's Series",
+    # Cambridge O-Level / IGCSE formula sheet sections
+    "1. ALGEBRA",
+    "2. TRIGONOMETRY",
+    "3. MENSURATION",
+    "4. CALCULUS",
+    "Differentiation",
+    "Integration",
+    "Normal distribution",
+    # Combination trigger phrases (partial)
+    "sin A",
+    "cos A",
+    "cosec",
+    "nCr",
+    "ln x",
 }
+
+# Minimum number of formula phrases that must appear together to
+# trigger removal via the combination heuristic (no explicit header needed).
+_FORMULA_COMBO_THRESHOLD = 4
 _ADDITIONAL_MARKERS = {"Additional Page", "Additional Answer Page"}
 
 
-def _should_remove(text: str, remove_blank: bool, remove_formula: bool, remove_additional: bool) -> bool:
+def _should_remove(
+    text: str,
+    remove_blank: bool,
+    remove_formula: bool,
+    remove_additional: bool,
+) -> bool:
     if remove_blank and any(m in text for m in _BLANK_MARKERS):
         return True
     if remove_additional and any(m in text for m in _ADDITIONAL_MARKERS):
         return True
-    if remove_formula and any(m in text for m in _FORMULA_MARKERS):
-        return True
+    if remove_formula:
+        # Direct header/title match — high confidence
+        if any(m in text for m in _FORMULA_MARKERS):
+            return True
+        # Combination heuristic — if enough formula phrases co-occur on
+        # the same page it is almost certainly a formula/data sheet even
+        # without a recognisable title (e.g. mid-booklet inserts).
+        if sum(1 for m in _FORMULA_MARKERS if m in text) >= _FORMULA_COMBO_THRESHOLD:
+            return True
     return False
 
 

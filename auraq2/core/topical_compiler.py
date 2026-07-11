@@ -217,11 +217,12 @@ def build_topical_booklets(
             for item in items:
                 qp_doc   = _get_doc(item.get("qp_path"))
                 q_entry  = item["question"]
+                item_label = item.get("label", "")
                 if qp_doc:
                     regions = q_entry.get("regions", [])
                     fallback = (q_entry.get("start_page"), q_entry.get("end_page"))
                     fallback_tuple = tuple(fallback) if None not in fallback else None
-                    insert_regions_into_pdf(qp_dest, qp_doc, regions, fallback_tuple)
+                    insert_regions_into_pdf(qp_dest, qp_doc, regions, fallback_tuple, label=item_label)
 
             qp_path_out = os.path.join(qp_dir, f"{base_name}_QP.pdf")
             qp_dest.save(qp_path_out)
@@ -237,11 +238,12 @@ def build_topical_booklets(
             for item in items:
                 ms_doc    = _get_doc(item.get("ms_path"))
                 ms_entry  = item.get("ms_entry")
+                item_label = item.get("label", "")
                 if ms_doc and ms_entry:
                     regions = ms_entry.get("regions", [])
                     fallback = (ms_entry.get("start_page"), ms_entry.get("end_page"))
                     fallback_tuple = tuple(fallback) if None not in fallback else None
-                    added = insert_regions_into_pdf(ms_dest, ms_doc, regions, fallback_tuple)
+                    added = insert_regions_into_pdf(ms_dest, ms_doc, regions, fallback_tuple, label=item_label)
                     if added:
                         has_ms = True
 
@@ -261,15 +263,16 @@ def build_topical_booklets(
                 ms_doc   = _get_doc(item.get("ms_path"))
                 q_entry  = item["question"]
                 ms_entry = item.get("ms_entry")
+                item_label = item.get("label", "")
 
                 if qp_doc:
                     regions = q_entry.get("regions", [])
                     fb = (q_entry.get("start_page"), q_entry.get("end_page"))
-                    insert_regions_into_pdf(merged_dest, qp_doc, regions, tuple(fb) if None not in fb else None)
+                    insert_regions_into_pdf(merged_dest, qp_doc, regions, tuple(fb) if None not in fb else None, label=item_label)
                 if ms_doc and ms_entry:
                     regions = ms_entry.get("regions", [])
                     fb = (ms_entry.get("start_page"), ms_entry.get("end_page"))
-                    insert_regions_into_pdf(merged_dest, ms_doc, regions, tuple(fb) if None not in fb else None)
+                    insert_regions_into_pdf(merged_dest, ms_doc, regions, tuple(fb) if None not in fb else None, label=item_label)
 
             merged_path_out = os.path.join(merged_dir, f"{base_name}_Merged.pdf")
             merged_dest.save(merged_path_out)

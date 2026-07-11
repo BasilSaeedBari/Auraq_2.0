@@ -294,6 +294,7 @@ def run_pipeline(
                 "question": q,
                 "ms_entry": ms_by_q.get(q["q_num"]),
                 "sort_key": sort_key,
+                "label":    f"{pid} Q{q['q_num']}",
             })
 
     # ── Stage 5: Topical Booklets ─────────────────────────────────────────────
