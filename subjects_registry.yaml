@@ -255,32 +255,52 @@ Cambridge O-Levels:
     papers:
       "1":
         name: "Paper 1"
-        topics: ["Functions", "Quadratic Functions", "Factors of Polynomials", "Equations, Inequalities and Graphs", "Simultaneous Equations", "Logarithmic and Exponential Functions", "Straight-Line Graphs", "Coordinate Geometry of the Circle", "Circular Measure", "Trigonometry"]
+        topics:
+          - "Functions"
+          - "Quadratic Functions"
+          - "Factors of Polynomials"
+          - "Equations, Inequalities and Graphs"
+          - "Simultaneous Equations"
+          - "Logarithmic and Exponential Functions"
+          - "Straight-Line Graphs"
+          - "Coordinate Geometry of the Circle"
+          - "Circular Measure"
+          - "Trigonometry"
         keyword_rules:
-          Functions: ["domain", "range", "one-to-one", "composite", "inverse function"]
-          Quadratic Functions: ["quadratic", "discriminant", "real roots", "vertex", "maximum value", "minimum value", "completing the square"]
-          Factors of Polynomials: ["factor theorem", "remainder theorem", "polynomial", "factorise", "cubic equation"]
-          Equations, Inequalities and Graphs: ["solve the inequality", "solve the equation", "modulus", "graph of y\\s*=\\s*", "substitution", "sketch"]
-          Simultaneous Equations: ["simultaneously", "solve the simultaneous", "elimination", "substitution"]
-          Logarithmic and Exponential Functions: ["logarithm", "exponential", "ln\\s+", "e\\^x", "log_"]
-          Straight-Line Graphs: ["gradient", "midpoint", "straight line", "perpendicular", "equation of a straight line"]
-          Coordinate Geometry of the Circle: ["equation of a circle", "equation of the circle", "tangent to the circle", "intersection of a line and a circle", "intersecting circles"]
-          Circular Measure: ["circular measure", "sector", "radians?", "arc length", "perimeter", "area of the shaded", "radian measure"]
-          Trigonometry: ["trigonometric", "solve the equation", "sin", "cos", "tan", "sec", "cosec", "cot", "identity"]
+          Functions: ["domain", "range", "one-to-one", "composite", "inverse function", "fg\\(", "gf\\(", "f\\^-1", "g\\^-1", "mapping", "function f", "function g", "defined by", "injective", "surjective", "bijective", "graph of y\\s*=\\s*f", "transformations?", "transformed", "transformation of graphs"]
+          Quadratic Functions: ["quadratic", "discriminant", "real roots", "equal roots", "distinct roots", "vertex", "maximum value", "minimum value", "axis of symmetry", "turning point", "range of values of", "completed square", "completing the square", "parabola", "coefficient of x", "b^2\\s*-\\s*4ac", "no real roots", "two real roots", "meets the x-axis", "tangent to the x-axis", "positive definite", "negative definite"]
+          Factors of Polynomials: ["factor theorem", "remainder theorem", "factorise", "factorise completely", "cubic", "quartic", "polynomial", "divided by", "remainder when", "show that x-\\d+ is a factor", "find the value of", "quotient", "synthetic division"]
+          Equations, Inequalities and Graphs: ["solve the equation", "solve the inequality", "modulus", "\\|.*\\|", "graph of y\\s*=\\s*", "sketch", "line of symmetry", "intersection point", "solve graphically", "simultaneous", "set of values of x", "interval", "linear inequality", "quadratic inequality"]
+          Simultaneous Equations: ["simultaneous equations", "solve the simultaneous", "elimination", "substitution", "two equations", "linear and quadratic", "intersection of"]
+          Logarithmic and Exponential Functions: ["logarithm", "\\b\\ln\\b", "\\be\\^x\\b", "\\be\\^{-x}\\b", "log_", "log base", "exponential equation", "solve for x using logarithms", "natural logarithm", "common logarithm", "laws of logarithms", "change of base", "graph of y\\s*=\\s*e\\^x", "graph of y\\s*=\\s*ln x", "domain of ln", "range of e\\^x"]
+          Straight-Line Graphs: ["gradient", "midpoint", "length of a line segment", "distance between", "straight line", "equation of a straight line", "perpendicular", "parallel", "y-intercept", "x-intercept", "point of intersection", "slope", "passes through", "line l", "equation of the line"]
+          Coordinate Geometry of the Circle: ["equation of a circle", "circle with centre", "radius", "tangent to the circle", "intersection of a line and a circle", "intersecting circles", "centre of the circle", "circle equation", "x^2\\s*\\+\\s*y^2", "x^2\\s*\\+\\s*y^2\\s*\\+\\s*", "circle passing through", "diameter", "chord", "semicircle"]
+          Circular Measure: ["radian", "arc length", "sector", "area of a sector", "perimeter of a sector", "angle in radians", "circle of radius", "length of arc", "area of the shaded", "segment", "chord", "radian measure", "π radians", "angle AOB"]
+          Trigonometry: ["sin", "cos", "tan", "cosec", "sec", "cot", "sin\\s*\\theta", "cos\\s*\\theta", "tan\\s*\\theta", "solve the equation", "for 0?≤θ≤360", "identity", "prove that", "compound angle", "double angle", "sin 2θ", "cos 2θ", "tan 2θ", "sin(A\\+B)", "cos(A\\-B)", "tan(A\\+B)", "principal value", "general solution", "R sin(θ\\+α)", "R cos(θ\\-α)"]
       "2":
         name: "Paper 2"
-        topics: ["Functions", "Quadratic Functions", "Factors of Polynomials", "Equations, Inequalities and Graphs", "Simultaneous Equations", "Logarithmic and Exponential Functions", "Straight-Line Graphs", "Coordinate Geometry of the Circle", "Circular Measure", "Trigonometry"]
+        topics:
+          - "Functions"
+          - "Quadratic Functions"
+          - "Factors of Polynomials"
+          - "Equations, Inequalities and Graphs"
+          - "Simultaneous Equations"
+          - "Logarithmic and Exponential Functions"
+          - "Straight-Line Graphs"
+          - "Coordinate Geometry of the Circle"
+          - "Circular Measure"
+          - "Trigonometry"
         keyword_rules:
-          Functions: ["domain", "range", "one-to-one", "composite", "inverse function"]
-          Quadratic Functions: ["quadratic", "discriminant", "real roots", "vertex", "maximum value", "minimum value", "completing the square"]
-          Factors of Polynomials: ["factor theorem", "remainder theorem", "polynomial", "factorise", "cubic equation"]
-          Equations, Inequalities and Graphs: ["solve the inequality", "solve the equation", "modulus", "graph of y\\s*=\\s*", "substitution", "sketch"]
-          Simultaneous Equations: ["simultaneously", "solve the simultaneous", "elimination", "substitution"]
-          Logarithmic and Exponential Functions: ["logarithm", "exponential", "ln\\s+", "e\\^x", "log_"]
-          Straight-Line Graphs: ["gradient", "midpoint", "straight line", "perpendicular", "equation of a straight line"]
-          Coordinate Geometry of the Circle: ["equation of a circle", "equation of the circle", "tangent to the circle", "intersection of a line and a circle", "intersecting circles"]
-          Circular Measure: ["circular measure", "sector", "radians?", "arc length", "perimeter", "area of the shaded", "radian measure"]
-          Trigonometry: ["trigonometric", "solve the equation", "sin", "cos", "tan", "sec", "cosec", "cot", "identity"]
+          Functions: ["domain", "range", "one-to-one", "composite", "inverse function", "fg\\(", "gf\\(", "f\\^-1", "g\\^-1", "mapping", "function f", "function g", "defined by", "injective", "surjective", "bijective", "graph of y\\s*=\\s*f", "transformations?", "transformed", "transformation of graphs"]
+          Quadratic Functions: ["quadratic", "discriminant", "real roots", "equal roots", "distinct roots", "vertex", "maximum value", "minimum value", "axis of symmetry", "turning point", "range of values of", "completed square", "completing the square", "parabola", "coefficient of x", "b^2\\s*-\\s*4ac", "no real roots", "two real roots", "meets the x-axis", "tangent to the x-axis", "positive definite", "negative definite"]
+          Factors of Polynomials: ["factor theorem", "remainder theorem", "factorise", "factorise completely", "cubic", "quartic", "polynomial", "divided by", "remainder when", "show that x-\\d+ is a factor", "find the value of", "quotient", "synthetic division"]
+          Equations, Inequalities and Graphs: ["solve the equation", "solve the inequality", "modulus", "\\|.*\\|", "graph of y\\s*=\\s*", "sketch", "line of symmetry", "intersection point", "solve graphically", "simultaneous", "set of values of x", "interval", "linear inequality", "quadratic inequality"]
+          Simultaneous Equations: ["simultaneous equations", "solve the simultaneous", "elimination", "substitution", "two equations", "linear and quadratic", "intersection of"]
+          Logarithmic and Exponential Functions: ["logarithm", "\\b\\ln\\b", "\\be\\^x\\b", "\\be\\^{-x}\\b", "log_", "log base", "exponential equation", "solve for x using logarithms", "natural logarithm", "common logarithm", "laws of logarithms", "change of base", "graph of y\\s*=\\s*e\\^x", "graph of y\\s*=\\s*ln x", "domain of ln", "range of e\\^x"]
+          Straight-Line Graphs: ["gradient", "midpoint", "length of a line segment", "distance between", "straight line", "equation of a straight line", "perpendicular", "parallel", "y-intercept", "x-intercept", "point of intersection", "slope", "passes through", "line l", "equation of the line"]
+          Coordinate Geometry of the Circle: ["equation of a circle", "circle with centre", "radius", "tangent to the circle", "intersection of a line and a circle", "intersecting circles", "centre of the circle", "circle equation", "x^2\\s*\\+\\s*y^2", "x^2\\s*\\+\\s*y^2\\s*\\+\\s*", "circle passing through", "diameter", "chord", "semicircle"]
+          Circular Measure: ["radian", "arc length", "sector", "area of a sector", "perimeter of a sector", "angle in radians", "circle of radius", "length of arc", "area of the shaded", "segment", "chord", "radian measure", "π radians", "angle AOB"]
+          Trigonometry: ["sin", "cos", "tan", "cosec", "sec", "cot", "sin\\s*\\theta", "cos\\s*\\theta", "tan\\s*\\theta", "solve the equation", "for 0?≤θ≤360", "identity", "prove that", "compound angle", "double angle", "sin 2θ", "cos 2θ", "tan 2θ", "sin(A\\+B)", "cos(A\\-B)", "tan(A\\+B)", "principal value", "general solution", "R sin(θ\\+α)", "R cos(θ\\-α)"]
   "7707":
     name: "Accounting"
     beh_slug: "accounting-7707"

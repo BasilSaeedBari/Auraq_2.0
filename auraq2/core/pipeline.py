@@ -23,6 +23,7 @@ import multiprocessing
 import os
 import json
 import time
+import logging
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
 from typing import Callable, Optional
 
@@ -184,7 +185,8 @@ def run_pipeline(
     # Build argument tuples for the picklable worker.
     # Tuple layout: (pdf_path, doc_type, paper_id, y_top, y_bot,
     #                registry_path, expected_q_nums,
-    #                remove_blank, remove_formula, remove_additional)
+    #                remove_blank, remove_formula, remove_additional, is_verbose)
+    is_verbose = logger.isEnabledFor(logging.DEBUG)
     worker_args: list[tuple] = []
     for spec in qp_specs:
         pdf_path  = get_local_path(base_dir, spec)
@@ -193,6 +195,7 @@ def run_pipeline(
         worker_args.append((
             pdf_path, "qp", pid, qp_top, qp_bot, reg_path, None,
             remove_blank, remove_formula, remove_additional,
+            is_verbose,
         ))
     for spec in ms_specs:
         pdf_path  = get_local_path(base_dir, spec)
@@ -201,6 +204,7 @@ def run_pipeline(
         worker_args.append((
             pdf_path, "ms", pid, ms_top, ms_bot, reg_path, None,
             remove_blank, remove_formula, remove_additional,
+            is_verbose,
         ))
 
     # Use "spawn" context for Windows safety

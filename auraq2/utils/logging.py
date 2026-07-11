@@ -39,8 +39,11 @@ def setup_logger(verbose_level: int = 0, log_to_file: bool = False) -> logging.L
     logger = logging.getLogger(_LOGGER_NAME)
 
     if logger.handlers:
-        # Already configured — just adjust level.
-        logger.setLevel(logging.DEBUG if verbose_level >= 1 else logging.INFO)
+        # Already configured — adjust level of both logger and all handlers.
+        level = logging.DEBUG if verbose_level >= 1 else logging.INFO
+        logger.setLevel(level)
+        for handler in logger.handlers:
+            handler.setLevel(level)
         _logger = logger
         return logger
 

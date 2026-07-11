@@ -26,8 +26,8 @@ _DEFAULTS: dict[str, dict[str, str]] = {
         "remove_formula": "no",
     },
     "Clipping": {
-        "qp_top_margin": "50",
-        "qp_bottom_margin": "60",
+        "qp_top_margin": "40",
+        "qp_bottom_margin": "50",
         "ms_top_margin": "50",
         "ms_bottom_margin": "40",
         "text_end_padding": "8",

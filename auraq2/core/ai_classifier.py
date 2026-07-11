@@ -47,41 +47,23 @@ def _build_batch_prompt(
 ) -> str:
     """
     Build the user prompt for batch classification.
-    - Extended snippets (600 chars) for more context.
-    - Syllabus context line added.
-    - One concrete classification example per instruction set.
     """
     topics_str = ", ".join(f'"{t}"' for t in topics)
 
     lines = [
-        f'You are classifying exam questions from: "{syllabus_name}".',
-        f"Focus on the MAIN mathematical concept being tested, not incidental mentions.",
-        f"Valid topics (use EXACTLY one, or \"Unclassified\" if none fits): [{topics_str}].",
-        "",
-        "Examples of correct classification:",
-        "  Q: 'Expand (1 + 2x)^5 and find the coefficient of x^2'  -> topic: Binomial",
-        "  Q: 'Solve for x in [0, 360]: 3 sin x = 2 cos x'         -> topic: Trigonometry",
-        "  Q: 'A sector of a circle has radius 8 cm and arc 12 cm. Find the area.' -> topic: Circular measure",
-        "  Q: 'Show that the sum of the arithmetic progression is ...' -> topic: AP",
-        "",
-        "STRICT JSON OUTPUT REQUIREMENT:",
-        "You must output ONLY a valid JSON object with the key 'classifications'.",
-        "The JSON object must contain an array of objects, each with exactly three keys: 'q_num' (int), 'topic' (string), and 'confidence' (float).",
-        "Do not include any other text, commentary, explanations, or markdown fences (do not wrap in ```json).",
-        "",
-        "Expected JSON Schema:",
-        "{",
-        '  "classifications": [',
-        '    {"q_num": <int>, "topic": "<exact topic from valid list>", "confidence": <float 0.0-1.0>},',
-        "    ...",
-        "  ]",
-        "}",
-        "",
-        "Questions to classify:",
+        f'You are an examiner. Classify each question from "{syllabus_name}" into exactly one of these topics: [{topics_str}].',
+        'If none fit, use "Unclassified".',
+        'Output a JSON object with a key "classifications" that is an array of objects.',
+        'Each object must have "q_num" (int), "topic" (string), and "confidence" (float 0.0-1.0).',
+        'DO NOT include any other text, markdown, or explanation. ONLY the JSON object.',
+        '',
+        'Expected JSON format:',
+        '{"classifications": [{"q_num": 1, "topic": "Trigonometry", "confidence": 0.95}]}',
+        '',
+        'Now classify the following questions (each line starts with Q<number>:):'
     ]
 
     for q in questions:
-        # Use 600 chars for richer context; collapse newlines
         snippet = (q.get("text_snippet") or "").replace("\n", " ")[:600]
         lines.append(f'Q{q["q_num"]}: {snippet}')
 
@@ -106,10 +88,9 @@ def _call_groq_batch(prompt: str, groq_key: str, model: str, max_retries: int = 
             {
                 "role":    "system",
                 "content": (
-                    "You are an expert Cambridge A-Level mathematics exam classifier. "
-                    "Given a batch of exam questions, classify each one by its primary mathematical topic. "
-                    "Respond ONLY with a valid JSON object matching the requested schema exactly. "
-                    "No prose, no markdown fences, no extra keys."
+                    "You are a JSON-only classifier. Never write prose. "
+                    "Your output must be a single JSON object with exactly the key 'classifications'. "
+                    "Do not wrap it in ```json or any other text."
                 ),
             },
             {"role": "user", "content": prompt},
@@ -263,7 +244,7 @@ def _heuristic_score(text: str, keyword_rules: dict) -> dict[str, int]:
                 
                 # Boolean matching: check presence instead of frequency to prevent keyword spamming
                 if re.search(pattern, text_lower, re.IGNORECASE):
-                    s += 2
+                    s += 3
             except Exception:
                 pass
         scores[topic] = s
@@ -287,7 +268,7 @@ def classify_paper_heuristics(
             best = max(scores, key=lambda k: scores[k])
             if scores[best] >= fallback_score:
                 q["topic"]      = best
-                q["confidence"] = min(1.0, scores[best] / 20.0)
+                q["confidence"] = min(0.85, scores[best] / 10.0)
                 continue
         q["topic"]      = "Unclassified"
         q["confidence"] = 0.0
@@ -370,7 +351,7 @@ def classify_paper_batch(
 
         if h_score >= STRONG_HEURISTIC_SCORE and ai_conf < STRONG_AI_THRESHOLD:
             # Strong keyword signal beats a moderately-confident AI
-            final, conf = h_topic, min(1.0, h_score / 20.0)
+            final, conf = h_topic, min(0.95, h_score / 15.0)
             reason = "strong-heuristic"
 
         elif ai_topic and ai_conf >= STRONG_AI_THRESHOLD:
@@ -380,12 +361,12 @@ def classify_paper_batch(
 
         elif ai_topic and h_topic and ai_topic == h_topic:
             # Both agree — high trust in AI label
-            final, conf = ai_topic, max(ai_conf, min(1.0, h_score / 20.0))
+            final, conf = ai_topic, max(ai_conf, min(0.95, h_score / 15.0))
             reason = "agreement"
 
         elif h_score >= heuristic_fallback_score:
             # Heuristic is good enough on its own
-            final, conf = h_topic, min(1.0, h_score / 20.0)
+            final, conf = h_topic, min(0.85, h_score / 10.0)
             reason = "heuristic-fallback"
 
         elif ai_topic and ai_conf >= confidence_threshold:
@@ -395,7 +376,7 @@ def classify_paper_batch(
 
         elif h_score > 0:
             # Weak heuristic signal — use it but flag low confidence
-            final, conf = h_topic, min(0.5, h_score / 20.0)
+            final, conf = h_topic, min(0.5, h_score / 10.0)
             reason = "heuristic-weak"
 
         else:

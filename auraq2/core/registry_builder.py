@@ -261,7 +261,7 @@ def _build_qp_registry(
     q_starts: list[tuple[int, int, float]] = []   # (q_num, page, y0)
     seen_q: set[int] = set()
 
-    for p_idx in range(len(doc)):
+    for p_idx in range(1, len(doc)):  # Skip cover page (page 0)
         page = doc[p_idx]
         pw   = page.rect.width
         ph   = page.rect.height
@@ -428,7 +428,7 @@ def _build_ms_registry(
     all_q_nums = expected_q_nums or list(range(1, 30))
 
     ms_starts = _get_ms_question_starts(
-        doc, 0, len(doc) - 1, all_q_nums, y_bottom
+        doc, 1, len(doc) - 1, all_q_nums, y_bottom  # Skip cover page (page 0)
     )
 
     questions_out: list[dict] = []
@@ -542,6 +542,18 @@ def build_registry(
 
     q_count = len(registry.get("questions", []))
     logger.info(f"  -> {q_count} questions detected in {paper_id}")
+
+    # Post-parsing verbose summary logging
+    import logging
+    if logger.isEnabledFor(logging.DEBUG):
+        logger.debug(f"Registry for {paper_id}:")
+        for q in registry.get("questions", []):
+            snippet = q.get("text_snippet", "")
+            snippet_cleaned = snippet[:100].replace("\n", " ")
+            # Sanitise to ASCII to prevent cp1252/Windows console encoding crashes on math symbols
+            snippet_cleaned = snippet_cleaned.encode("ascii", errors="ignore").decode("ascii")
+            logger.debug(f"  Q{q['q_num']}: {snippet_cleaned}...")
+
     return registry
 
 
@@ -592,7 +604,8 @@ def _build_registry_worker(args: tuple) -> tuple[str, dict]:
 
     Args tuple layout:
         (pdf_path, doc_type, paper_id, y_top, y_bottom, registry_path,
-         expected_q_nums, remove_blank, remove_formula, remove_additional)
+         expected_q_nums, remove_blank, remove_formula, remove_additional,
+         is_verbose)
 
     Returns: (paper_id, registry_dict)
     """
@@ -600,7 +613,12 @@ def _build_registry_worker(args: tuple) -> tuple[str, dict]:
         pdf_path, doc_type, paper_id, y_top, y_bottom,
         registry_path, expected_q_nums,
         remove_blank, remove_formula, remove_additional,
+        is_verbose,
     ) = args
+
+    if is_verbose:
+        from auraq2.utils.logging import setup_logger
+        setup_logger(verbose_level=1)
 
     filter_flags = {
         "remove_blank":      remove_blank,
