@@ -1,0 +1,302 @@
+# Auraq Extensible Subject and Curriculum Registry
+# Format:
+# <Curriculum Name>:
+#   "<Syllabus Code>":
+#     name: "<Subject Name>"
+#     beh_slug: "<Best Exam Help URL path>" # Optional, for CAIE
+#     dp_slug: "<Dynamic Papers URL path>"   # For Edexcel / CAIE
+#     papers:
+#       "<Paper Code>":
+#         name: "<Paper Component Name>"
+#         topics:
+#           - "<Topic 1>"
+#         keyword_rules:
+#           <Topic 1>: ["regex_pattern_1", "regex_pattern_2"]
+
+Cambridge A-Levels:
+  "9709":
+    name: "Mathematics"
+    beh_slug: "mathematics-9709"
+    dp_slug: "maths"
+    papers:
+      "1":
+        name: "Pure Mathematics 1"
+        topics:
+          - "Quadratics"
+          - "Functions"
+          - "Coordinate geometry"
+          - "Coordinate geometry of Circles"
+          - "Circular measure"
+          - "Trigonometry"
+          - "AP"
+          - "GP"
+          - "Binomial"
+          - "Differentiation"
+          - "Integration"
+        keyword_rules:
+          Quadratics: ["quadratic", "discriminant", "real roots", "no real roots", "distinct roots", "completed square", "completing the square", "parabola", "vertex", "meets the curve at a single point", "tangent to the curve"]
+          Functions: ["domain", "range", "composite", "inverse function", "one-to-one", "fg\\(x\\)", "gf\\(x\\)", "f\\^-1", "g\\^-1", "transformations?", "transformed", "graph of y\\s*=\\s*f\\(x\\)"]
+          Coordinate geometry: ["coordinate geometry", "perpendicular bisector", "gradient of", "midpoint", "straight line", "passes through"]
+          Coordinate geometry of Circles: ["equation of the circle", "centre of the circle", "radius of the circle", "tangent to the circle"]
+          Circular measure: ["circular measure", "sector", "arc length", "radians?", "perimeter of the shaded", "area of the shaded", "chord", "segment", "perimeter of the region", "area of the region", "angle poq"]
+          Trigonometry: ["trigonometric", "prove the identity", "solve the equation for", "sin", "cos", "tan", "cosec", "sec", "cot"]
+          AP: ["arithmetic progression", "sum of the first", "common difference"]
+          GP: ["geometric progression", "sum to infinity", "common ratio"]
+          Binomial: ["binomial expansion", "coefficient of", "term independent of", "expansion of"]
+          Differentiation: ["differentiation", "derivative", "stationary point", "increasing function", "decreasing function", "rate of change", "maximum point", "minimum point", "tangents?", "normals?"]
+          Integration: ["integration", "integrate", "area of the region", "bounded by the curve", "volume of revolution", "definite integral", "dy/dx", "find the equation of the curve"]
+      "2":
+        name: "Pure Mathematics 2"
+        topics:
+          - "Algebra"
+          - "Logarithms and Exponential Functions"
+          - "Trigonometry"
+          - "Differentiation"
+          - "Integration"
+          - "Numerical Solutions of Equations"
+        keyword_rules:
+          Algebra: ["partial fractions", "quotient", "remainder", "factor theorem", "polynomial", "divided by", "remainder theorem"]
+          Logarithms and Exponential Functions: ["logarithm", "exponential", "ln\\s+", "e\\^x", "e\\^-x", "solve for x using logarithms"]
+          Trigonometry: ["trigonometric", "solve the equation", "sin", "cos", "tan", "sec", "cosec", "cot"]
+          Differentiation: ["derivative", "stationary point", "rate of change", "differentiation"]
+          Integration: ["integration", "integrate", "definite integral"]
+          Numerical Solutions of Equations: ["numerical solution", "iteration", "iterative formula", "converges", "change of sign"]
+      "3":
+        name: "Pure Mathematics 3"
+        topics:
+          - "Algebra"
+          - "polynomials"
+          - "modulus function"
+          - "partial fractions"
+          - "binomial expansion"
+          - "Logarithmic functions"
+          - "Trigonometry"
+          - "Differentiation"
+          - "Integration"
+          - "Numerical solution of equations"
+          - "Vectors"
+          - "Differential equations"
+          - "Complex numbers"
+          - "Exponential functions"
+        keyword_rules:
+          Algebra: ["algebra", "partial fractions", "quotient", "remainder", "factor theorem", "polynomial", "divided by", "remainder theorem"]
+          polynomials: ["polynomial", "quotient", "remainder", "factor theorem", "remainder theorem", "divided by"]
+          modulus function: ["modulus", "solve the inequality", "\\|.*\\|", "modulus function"]
+          partial fractions: ["partial fractions"]
+          binomial expansion: ["binomial expansion", "coefficient of", "expansion of"]
+          Logarithmic functions: ["logarithm", "ln\\s+", "solve for x using logarithms"]
+          Trigonometry: ["trigonometric", "solve the equation", "sin", "cos", "tan", "sec", "cosec", "cot", "compound angle", "double angle"]
+          Differentiation: ["derivative", "stationary point", "rate of change", "differentiation", "implicit", "parametric"]
+          Integration: ['integration', 'integrate', 'definite integral', 'substitution', 'by parts', 'volume of revolution', 'area of the region', '∫']
+          Numerical solution of equations: ["numerical solution", "iteration", "iterative formula", "converges", "change of sign", "iterative method"]
+          Vectors: ["vector", "line l", "plane", "position vector", "perpendicular lines", "parallel planes", "direction vector", "angle between the lines"]
+          Differential equations: ["differential equation", "variables separable", "solve the differential equation", "rate of increase", "proportional to"]
+          Complex numbers: ["complex number", "real and imaginary parts", "modulus", "argument", "arg\\(", "i\\^2\\s*=\\s*-1", "conjugate", "argand diagram"]
+          Exponential functions: ["exponential", "e\\^x", "e\\^-x"]
+      "4":
+        name: "Mechanics"
+        topics:
+          - "Forces and equilibrium"
+          - "Kinematics of motion in a straight line"
+          - "Momentum"
+          - "Newton's laws of motion"
+          - "Energy, work and power"
+        keyword_rules:
+          Forces and equilibrium: ["force", "equilibrium", "tension", "friction", "coefficient of friction", "\\bmu\\b", "normal contact force", "coplanar forces", "component", "resolve"]
+          Kinematics of motion in a straight line: ["kinematics", "velocity", "acceleration", "displacement", "straight line", "deceleration", "t\\s*=\\s*0", "speed", "distance", "retardation"]
+          Momentum: ["momentum", "collision", "coalesce", "speed after collision", "impulse", "conservation of momentum"]
+          Newton's laws of motion: ["newton", "mass", "pulley", "string", "light inextensible", "smooth pulley", "connected particles"]
+          Energy, work and power: ["energy", "work", "power", "kinetic energy", "potential energy", "loss of energy", "work done", "instantaneous power", "engine", "constant speed"]
+      "5":
+        name: "Probability & Statistics 1"
+        topics:
+          - "Representation of data"
+          - "Measures of location"
+          - "Measures of spread"
+          - "Permutations and combinations"
+          - "Probability"
+          - "Discrete random variables"
+          - "The binomial distribution"
+          - "The normal distribution"
+        keyword_rules:
+          Representation of data: ["box-and-whisker plot", "stem-and-leaf diagram", "cumulative frequency", "histogram", "frequency density", "bar chart", "pie chart"]
+          Measures of location: ["mean", "median", "modal class", "percentile"]
+          Measures of spread: ["standard deviation", "variance", "interquartile range", "range"]
+          Permutations and combinations: ["permutation", "combination", "selections", "arrangements", "arranged in a circle", "how many different", "together", "separate", "choose"]
+          Probability: ["probability", "independent events", "conditional probability", "probability tree", "venn diagram", "mutually exclusive"]
+          Discrete random variables: ["discrete random variable", "probability distribution table", "expectation", "e\\(x\\)", "var\\(x\\)", "expected value", "fair die", "discrete distribution", "geometric distribution"]
+          The binomial distribution: ["binomial distribution", "binomially distributed"]
+          The normal distribution: ["normal distribution", "standard normal", "mean mu", "variance sigma", "probability density", "approximation to", "continuity correction", "z-score", "normally distributed"]
+      "6":
+        name: "Probability & Statistics 2"
+        topics:
+          - "The Poisson distribution"
+          - "Linear combinations of random variables"
+          - "Continuous random variables"
+          - "Sampling and estimation"
+          - "Hypothesis tests"
+        keyword_rules:
+          The Poisson distribution: ["poisson", "mean lambda", "probability density", "poisson distribution"]
+          Linear combinations of random variables: ["linear combination", "independent normal", "random variable x and y", "sum of"]
+          Continuous random variables: ["continuous random variable", "probability density function", "f\\(x\\)\\s*=\\s*", "median", "interquartile range"]
+          Sampling and estimation: ["sampling", "unbiased estimate", "population variance", "confidence interval", "mean of a random sample"]
+          Hypothesis tests: ["hypothesis test", "null hypothesis", "alternative hypothesis", "significance level", "type i error", "type ii error", "critical region"]
+
+  "9231":
+    name: "Further Mathematics"
+    beh_slug: "mathematics-further-9231"
+    dp_slug: "further-mathematics"
+    papers:
+      "1":
+        name: "Further Pure Mathematics 1"
+        topics: ["Roots of Polynomial Equations", "Rational Functions and Graphs", "Polar Coordinates", "Vectors", "Matrix Transformations", "Proof by Induction"]
+      "2":
+        name: "Further Pure Mathematics 2"
+        topics: ["Hyperbolic Functions", "Matrices", "Differentiation", "Integration", "Complex Numbers", "Differential Equations"]
+  
+  "9706":
+    name: "Accounting"
+    beh_slug: "accounting-9706"
+    dp_slug: "accounting"
+    papers:
+      "1":
+        name: "AS Level Multiple Choice"
+        format: "MCQ"
+        topics: ["Financial Accounting", "Cost and Management Accounting"]
+      "2":
+        name: "AS Level Structured Questions"
+        topics: ["Financial Accounting", "Cost and Management Accounting"]
+
+Cambridge IGCSE:
+  "0580":
+    name: "Mathematics"
+    beh_slug: "mathematics-0580"
+    dp_slug: "maths"
+    papers:
+      "1":
+        name: "Paper 1 (Core)"
+        topics: ["Number", "Algebra and Graphs", "Geometry", "Mensuration", "Coordinate Geometry", "Trigonometry", "Probability", "Statistics"]
+      "2":
+        name: "Paper 2 (Extended)"
+        topics: ["Number", "Algebra and Graphs", "Geometry", "Mensuration", "Coordinate Geometry", "Trigonometry", "Probability", "Statistics"]
+  "0606":
+    name: "Additional Mathematics"
+    beh_slug: "mathematics-additional-0606"
+    dp_slug: "maths"
+    papers:
+      "1":
+        name: "Paper 1"
+        topics: ["Functions", "Quadratic Functions", "Equations, Inequalities and Graphs", "Indices and Surds", "Factors of Polynomials", "Simultaneous Equations", "Logarithmic and Exponential Functions", "Straight Line Graphs", "Circular Measure", "Trigonometry", "Permutations and Combinations", "Series", "Vectors", "Differentiation and Integration"]
+
+Edexcel GCSE:
+  "1MA1":
+    name: "Mathematics"
+    dp_slug: "o-level/maths-2"
+    papers:
+      "1H":
+        name: "Paper 1 (Higher, Non-Calculator)"
+        topics: ["Number", "Algebra", "Ratio", "Geometry", "Probability", "Statistics"]
+      "2H":
+        name: "Paper 2 (Higher, Calculator)"
+        topics: ["Number", "Algebra", "Ratio", "Geometry", "Probability", "Statistics"]
+      "3H":
+        name: "Paper 3 (Higher, Calculator)"
+        topics: ["Number", "Algebra", "Ratio", "Geometry", "Probability", "Statistics"]
+
+Edexcel A-Levels:
+  "9MA0":
+    name: "Mathematics"
+    dp_slug: "asial/maths"
+    papers:
+      "1":
+        name: "Paper 1 (Pure Mathematics 1)"
+        topics: ["Proof", "Algebra and Functions", "Coordinate Geometry", "Sequences and Series", "Trigonometry", "Exponentials and Logarithms", "Differentiation", "Integration", "Numerical Methods", "Vectors"]
+      "2":
+        name: "Paper 2 (Pure Mathematics 2)"
+        topics: ["Proof", "Algebra and Functions", "Coordinate Geometry", "Sequences and Series", "Trigonometry", "Exponentials and Logarithms", "Differentiation", "Integration", "Numerical Methods", "Vectors"]
+      "3":
+        name: "Paper 3 (Statistics and Mechanics)"
+        topics: ["Statistical Sampling", "Data Presentation", "Probability", "Statistical Distributions", "Statistical Hypothesis Testing", "Quantities and Units in Mechanics", "Kinematics", "Forces and Newton's Laws", "Moments"]
+
+Cambridge O-Levels:
+  "4024":
+    name: "Mathematics D"
+    beh_slug: "mathematics-d-4024"
+    dp_slug: "maths-2"
+    papers:
+      "1":
+        name: "Paper 1 (Non-Calculator)"
+        topics: ["Number", "Algebra and Graphs", "Coordinate Geometry", "Geometry", "Mensuration", "Trigonometry", "Transformations and Vectors", "Probability"]
+        keyword_rules:
+          Number: ["number", "fraction", "decimal", "percentage", "ratio", "proportion", "standard form"]
+          Algebra and Graphs: ["solve", "factorise", "simplify", "equation", "inequality", "formula", "indices", "graph of", "sketch", "transformation", "functions", "inverse function", "composite function"]
+          Coordinate Geometry: ["gradient", "midpoint", "length of line", "equation of line", "coordinates"]
+          Geometry: ["angle", "triangle", "polygon", "symmetry", "similarity", "congruence", "circle theorems"]
+          Mensuration: ["area", "perimeter", "volume", "surface area", "cylinder", "sphere", "cone"]
+          Trigonometry: ["sin", "cos", "tan", "pythagoras", "elevation", "depression", "bearing"]
+          Transformations and Vectors: ["reflection", "rotation", "enlargement", "translation", "vector", "magnitude", "scalar multiplication"]
+          Probability: ["probability", "fraction", "coin", "die", "dice", "tree diagram", "possibility diagram"]
+      "2":
+        name: "Paper 2 (Calculator)"
+        topics: ["Number", "Algebra and Graphs", "Coordinate Geometry", "Geometry", "Mensuration", "Trigonometry", "Transformations and Vectors", "Probability"]
+        keyword_rules:
+          Number: ["number", "fraction", "decimal", "percentage", "ratio", "proportion", "standard form"]
+          Algebra and Graphs: ["solve", "factorise", "simplify", "equation", "inequality", "formula", "indices", "graph of", "sketch", "transformation", "functions", "inverse function", "composite function"]
+          Coordinate Geometry: ["gradient", "midpoint", "length of line", "equation of line", "coordinates"]
+          Geometry: ["angle", "triangle", "polygon", "symmetry", "similarity", "congruence", "circle theorems"]
+          Mensuration: ["area", "perimeter", "volume", "surface area", "cylinder", "sphere", "cone"]
+          Trigonometry: ["sin", "cos", "tan", "pythagoras", "elevation", "depression", "bearing"]
+          Transformations and Vectors: ["reflection", "rotation", "enlargement", "translation", "vector", "magnitude", "scalar multiplication"]
+          Probability: ["probability", "fraction", "coin", "die", "dice", "tree diagram", "possibility diagram"]
+  "4037":
+    name: "Additional Mathematics"
+    beh_slug: "mathematics-additional-4037"
+    dp_slug: "maths"
+    papers:
+      "1":
+        name: "Paper 1"
+        topics: ["Functions", "Quadratic Functions", "Factors of Polynomials", "Equations, Inequalities and Graphs", "Simultaneous Equations", "Logarithmic and Exponential Functions", "Straight-Line Graphs", "Coordinate Geometry of the Circle", "Circular Measure", "Trigonometry"]
+        keyword_rules:
+          Functions: ["domain", "range", "one-to-one", "composite", "inverse function"]
+          Quadratic Functions: ["quadratic", "discriminant", "real roots", "vertex", "maximum value", "minimum value", "completing the square"]
+          Factors of Polynomials: ["factor theorem", "remainder theorem", "polynomial", "factorise", "cubic equation"]
+          Equations, Inequalities and Graphs: ["solve the inequality", "solve the equation", "modulus", "graph of y\\s*=\\s*", "substitution", "sketch"]
+          Simultaneous Equations: ["simultaneously", "solve the simultaneous", "elimination", "substitution"]
+          Logarithmic and Exponential Functions: ["logarithm", "exponential", "ln\\s+", "e\\^x", "log_"]
+          Straight-Line Graphs: ["gradient", "midpoint", "straight line", "perpendicular", "equation of a straight line"]
+          Coordinate Geometry of the Circle: ["equation of a circle", "equation of the circle", "tangent to the circle", "intersection of a line and a circle", "intersecting circles"]
+          Circular Measure: ["circular measure", "sector", "radians?", "arc length", "perimeter", "area of the shaded", "radian measure"]
+          Trigonometry: ["trigonometric", "solve the equation", "sin", "cos", "tan", "sec", "cosec", "cot", "identity"]
+      "2":
+        name: "Paper 2"
+        topics: ["Functions", "Quadratic Functions", "Factors of Polynomials", "Equations, Inequalities and Graphs", "Simultaneous Equations", "Logarithmic and Exponential Functions", "Straight-Line Graphs", "Coordinate Geometry of the Circle", "Circular Measure", "Trigonometry"]
+        keyword_rules:
+          Functions: ["domain", "range", "one-to-one", "composite", "inverse function"]
+          Quadratic Functions: ["quadratic", "discriminant", "real roots", "vertex", "maximum value", "minimum value", "completing the square"]
+          Factors of Polynomials: ["factor theorem", "remainder theorem", "polynomial", "factorise", "cubic equation"]
+          Equations, Inequalities and Graphs: ["solve the inequality", "solve the equation", "modulus", "graph of y\\s*=\\s*", "substitution", "sketch"]
+          Simultaneous Equations: ["simultaneously", "solve the simultaneous", "elimination", "substitution"]
+          Logarithmic and Exponential Functions: ["logarithm", "exponential", "ln\\s+", "e\\^x", "log_"]
+          Straight-Line Graphs: ["gradient", "midpoint", "straight line", "perpendicular", "equation of a straight line"]
+          Coordinate Geometry of the Circle: ["equation of a circle", "equation of the circle", "tangent to the circle", "intersection of a line and a circle", "intersecting circles"]
+          Circular Measure: ["circular measure", "sector", "radians?", "arc length", "perimeter", "area of the shaded", "radian measure"]
+          Trigonometry: ["trigonometric", "solve the equation", "sin", "cos", "tan", "sec", "cosec", "cot", "identity"]
+  "7707":
+    name: "Accounting"
+    beh_slug: "accounting-7707"
+    dp_slug: "accounting"
+    papers:
+      "1":
+        name: "Paper 1 (Multiple Choice)"
+        format: "MCQ"
+        topics: ["Financial Accounting", "Cost and Management Accounting"]
+        keyword_rules:
+          Financial Accounting: ["ledger", "trial balance", "balance sheet", "asset", "liability", "income statement", "capital", "depreciation"]
+          Cost and Management Accounting: ["cost", "overhead", "break-even", "budget", "variance", "margin", "contribution"]
+      "2":
+        name: "Paper 2 (Structured)"
+        topics: ["Financial Accounting", "Cost and Management Accounting"]
+        keyword_rules:
+          Financial Accounting: ["ledger", "trial balance", "balance sheet", "asset", "liability", "income statement", "capital", "depreciation"]
+          Cost and Management Accounting: ["cost", "overhead", "break-even", "budget", "variance", "margin", "contribution"]
+

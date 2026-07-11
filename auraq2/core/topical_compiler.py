@@ -1,0 +1,286 @@
+"""
+Auraq 2.0 — Topical Compiler
+Aggregates extracted question regions from many papers into topical booklets.
+
+For each topic produces three PDF files:
+  • {subject}_Paper_{paper}_{Topic}_QP.pdf   — Questions only
+  • {subject}_Paper_{paper}_{Topic}_MS.pdf   — Mark scheme only
+  • {subject}_Paper_{paper}_{Topic}_Merged.pdf — Q then MS interleaved
+
+Cover page design: Purple/Vintage Grape palette (preserved from v1).
+"""
+from __future__ import annotations
+
+import os
+from collections import defaultdict
+
+import fitz  # PyMuPDF
+
+from auraq2.utils.logging import get_logger
+from auraq2.core.extractor import insert_regions_into_pdf
+
+logger = get_logger()
+
+# ── Colour palette (float RGB) ────────────────────────────────────────────────
+_INDIGO       = (0.3098, 0.0706, 0.4431)
+_ORCHID       = (0.4706, 0.2471, 0.5569)
+_THISTLE      = (0.7490, 0.6745, 0.7843)
+_GRAPE        = (0.2902, 0.2510, 0.3882)
+_PALE_SLATE   = (0.7843, 0.7765, 0.8431)
+_NEAR_WHITE   = (0.97,   0.97,   0.97)
+_WHITE        = (1.0,    1.0,    1.0)
+
+
+# ── Cover page ────────────────────────────────────────────────────────────────
+def _create_cover_page(
+    doc: fitz.Document,
+    title: str,
+    syllabus: str,
+    topic: str,
+    doc_type: str,
+    year_range: str,
+    q_count: str,
+    insert_at: int = 0,
+) -> None:
+    """Draw a premium vector cover page (A4 595×842) and insert at position *insert_at*."""
+    page = doc.new_page(width=595, height=842, pno=insert_at)
+
+    # ── Header banner
+    page.draw_rect(fitz.Rect(0, 0, 595, 195), color=_INDIGO, fill=_INDIGO, width=0)
+    page.draw_rect(fitz.Rect(0, 195, 595, 203), color=_ORCHID, fill=_ORCHID, width=0)
+
+    page.insert_textbox(
+        fitz.Rect(40, 38, 555, 60),
+        "AURAQ 2.0  ·  TOPICAL COMPILATION SYSTEM",
+        fontsize=9.5, fontname="helv", color=_THISTLE,
+        align=fitz.TEXT_ALIGN_LEFT,
+    )
+    page.insert_textbox(
+        fitz.Rect(40, 68, 555, 130),
+        title.upper(),
+        fontsize=26, fontname="helv", color=_WHITE,
+        align=fitz.TEXT_ALIGN_LEFT,
+    )
+    page.insert_textbox(
+        fitz.Rect(40, 138, 555, 170),
+        doc_type.upper(),
+        fontsize=13, fontname="helv", color=_PALE_SLATE,
+        align=fitz.TEXT_ALIGN_LEFT,
+    )
+
+    # ── Syllabus label
+    page.insert_textbox(
+        fitz.Rect(40, 228, 555, 274),
+        f"Syllabus Component:\n{syllabus}",
+        fontsize=14, fontname="helv", color=_GRAPE,
+        align=fitz.TEXT_ALIGN_LEFT,
+    )
+
+    # ── Topic block
+    page.draw_rect(fitz.Rect(40, 300, 555, 418), color=_NEAR_WHITE, fill=_NEAR_WHITE, width=0)
+    page.draw_rect(fitz.Rect(40, 300, 48,  418), color=_ORCHID,     fill=_ORCHID,     width=0)
+    page.insert_textbox(
+        fitz.Rect(64, 322, 540, 405),
+        f"TOPIC:\n{topic.upper()}",
+        fontsize=20, fontname="helv", color=_INDIGO,
+        align=fitz.TEXT_ALIGN_LEFT,
+    )
+
+    # ── Metadata boxes
+    # Years
+    page.draw_rect(fitz.Rect(40, 455, 278, 542), color=_NEAR_WHITE, fill=_NEAR_WHITE, width=0)
+    page.insert_textbox(
+        fitz.Rect(50, 470, 268, 536),
+        f"YEARS INCLUDED\n\n{year_range}",
+        fontsize=11.5, fontname="helv", color=_GRAPE,
+        align=fitz.TEXT_ALIGN_CENTER,
+    )
+    # Questions
+    page.draw_rect(fitz.Rect(317, 455, 555, 542), color=_NEAR_WHITE, fill=_NEAR_WHITE, width=0)
+    page.insert_textbox(
+        fitz.Rect(327, 470, 545, 536),
+        f"TOTAL QUESTIONS\n\n{q_count}",
+        fontsize=11.5, fontname="helv", color=_GRAPE,
+        align=fitz.TEXT_ALIGN_CENTER,
+    )
+
+    # ── Notes
+    notes = (
+        "Document Details:\n"
+        "• Chronological past paper compilation.\n"
+        "• Vector layout retained — equations and graphs preserved.\n"
+        "• Automatically parsed and compiled via Auraq 2.0.\n"
+        "• Only question text extracted (working space excluded).\n"
+    )
+    if "Merged" in doc_type:
+        notes += "• Format: each question is immediately followed by its mark scheme solution."
+    else:
+        notes += f"• This booklet contains the {doc_type} sections only."
+
+    page.insert_textbox(
+        fitz.Rect(40, 580, 555, 700),
+        notes, fontsize=10, fontname="helv", color=_GRAPE,
+        align=fitz.TEXT_ALIGN_LEFT,
+    )
+
+    # ── Footer
+    page.draw_line(fitz.Point(40, 730), fitz.Point(555, 730), color=_PALE_SLATE, width=1)
+    page.insert_textbox(
+        fitz.Rect(40, 742, 555, 772),
+        "Compiled by Auraq 2.0. All copyrights belong to the respective exam boards.",
+        fontsize=8.5, fontname="helv", color=_PALE_SLATE,
+        align=fitz.TEXT_ALIGN_CENTER,
+    )
+
+
+# ── Filename sanitiser ────────────────────────────────────────────────────────
+def _safe_name(s: str) -> str:
+    return s.replace(" ", "_").replace("/", "_").replace("&", "and").replace("'", "")
+
+
+# ── Main public function ───────────────────────────────────────────────────────
+def build_topical_booklets(
+    paper_questions: list[dict],
+    output_dir: str,
+    subject_code: str,
+    paper_code: str,
+    syllabus_name: str,
+    topics_list: list[str],
+    start_year: int,
+    end_year: int,
+    is_mcq: bool = False,
+) -> None:
+    """
+    Build topical PDF booklets from a list of question records.
+
+    Each element of *paper_questions* is a dict:
+      {
+        "qp_path":  str,            # absolute path to the QP PDF
+        "ms_path":  str | None,     # absolute path to the MS PDF (or None)
+        "question": dict,           # question entry from QP registry
+        "ms_entry": dict | None,    # matching MS registry entry (or None)
+        "sort_key": tuple,          # chronological sort key
+      }
+
+    Produces inside output_dir:
+      Topical_QP/{subject}_Paper_{paper}_{topic}_QP.pdf
+      Topical_MS/{subject}_Paper_{paper}_{topic}_MS.pdf
+      Topical_Merged/{subject}_Paper_{paper}_{topic}_Merged.pdf
+    """
+    qp_dir     = os.path.join(output_dir, "Topical_QP")
+    ms_dir     = os.path.join(output_dir, "Topical_MS")
+    merged_dir = os.path.join(output_dir, "Topical_Merged")
+    for d in (qp_dir, ms_dir, merged_dir):
+        os.makedirs(d, exist_ok=True)
+
+    # Group by topic, preserving chronological order
+    by_topic: dict[str, list[dict]] = defaultdict(list)
+    sorted_qs = sorted(paper_questions, key=lambda x: x.get("sort_key", (9999,)))
+    for item in sorted_qs:
+        topic = item["question"].get("topic") or "Unclassified"
+        by_topic[topic].append(item)
+
+    year_range = f"{start_year} – {end_year}"
+
+    generation_topics = list(topics_list)
+    if by_topic.get("Unclassified"):
+        generation_topics.append("Unclassified")
+
+    for topic in generation_topics:
+        items = by_topic.get(topic, [])
+        if not items:
+            continue
+
+        q_count   = len(items)
+        topic_fn  = _safe_name(topic)
+        base_name = f"{subject_code}_Paper_{paper_code}_{topic_fn}"
+
+        logger.info(f"Building booklets: {topic} ({q_count} questions)")
+
+        # ── Open all required source docs ──────────────────────────────────
+        open_docs: dict[str, fitz.Document] = {}
+
+        def _get_doc(path: str | None) -> fitz.Document | None:
+            if not path or not os.path.exists(path):
+                return None
+            if path not in open_docs:
+                open_docs[path] = fitz.open(path)
+            return open_docs[path]
+
+        try:
+            # ── QP Booklet ─────────────────────────────────────────────────
+            qp_dest = fitz.open()
+            _create_cover_page(
+                qp_dest, "Topical Past Papers", syllabus_name, topic,
+                "Question Paper (QP)", year_range, str(q_count),
+            )
+            for item in items:
+                qp_doc   = _get_doc(item.get("qp_path"))
+                q_entry  = item["question"]
+                if qp_doc:
+                    regions = q_entry.get("regions", [])
+                    fallback = (q_entry.get("start_page"), q_entry.get("end_page"))
+                    fallback_tuple = tuple(fallback) if None not in fallback else None
+                    insert_regions_into_pdf(qp_dest, qp_doc, regions, fallback_tuple)
+
+            qp_path_out = os.path.join(qp_dir, f"{base_name}_QP.pdf")
+            qp_dest.save(qp_path_out)
+            qp_dest.close()
+
+            # ── MS Booklet ─────────────────────────────────────────────────
+            ms_dest   = fitz.open()
+            has_ms    = False
+            _create_cover_page(
+                ms_dest, "Topical Past Papers", syllabus_name, topic,
+                "Marking Scheme (MS)", year_range, str(q_count),
+            )
+            for item in items:
+                ms_doc    = _get_doc(item.get("ms_path"))
+                ms_entry  = item.get("ms_entry")
+                if ms_doc and ms_entry:
+                    regions = ms_entry.get("regions", [])
+                    fallback = (ms_entry.get("start_page"), ms_entry.get("end_page"))
+                    fallback_tuple = tuple(fallback) if None not in fallback else None
+                    added = insert_regions_into_pdf(ms_dest, ms_doc, regions, fallback_tuple)
+                    if added:
+                        has_ms = True
+
+            if has_ms:
+                ms_path_out = os.path.join(ms_dir, f"{base_name}_MS.pdf")
+                ms_dest.save(ms_path_out)
+            ms_dest.close()
+
+            # ── Merged Booklet ─────────────────────────────────────────────
+            merged_dest = fitz.open()
+            _create_cover_page(
+                merged_dest, "Topical Past Papers", syllabus_name, topic,
+                "Questions & Solutions (Merged)", year_range, str(q_count),
+            )
+            for item in items:
+                qp_doc   = _get_doc(item.get("qp_path"))
+                ms_doc   = _get_doc(item.get("ms_path"))
+                q_entry  = item["question"]
+                ms_entry = item.get("ms_entry")
+
+                if qp_doc:
+                    regions = q_entry.get("regions", [])
+                    fb = (q_entry.get("start_page"), q_entry.get("end_page"))
+                    insert_regions_into_pdf(merged_dest, qp_doc, regions, tuple(fb) if None not in fb else None)
+                if ms_doc and ms_entry:
+                    regions = ms_entry.get("regions", [])
+                    fb = (ms_entry.get("start_page"), ms_entry.get("end_page"))
+                    insert_regions_into_pdf(merged_dest, ms_doc, regions, tuple(fb) if None not in fb else None)
+
+            merged_path_out = os.path.join(merged_dir, f"{base_name}_Merged.pdf")
+            merged_dest.save(merged_path_out)
+            merged_dest.close()
+
+        finally:
+            # Close all opened source documents
+            for doc in open_docs.values():
+                try:
+                    doc.close()
+                except Exception:
+                    pass
+
+    logger.info(f"Topical booklet generation complete → {output_dir}")

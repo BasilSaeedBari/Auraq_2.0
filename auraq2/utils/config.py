@@ -1,0 +1,110 @@
+"""
+Auraq 2.0 — Configuration Manager
+Reads and writes settings to %APPDATA%/auraq2/config.ini.
+"""
+import configparser
+import os
+
+_CONFIG_DIR = os.path.join(os.environ.get("APPDATA") or os.path.expanduser("~"), "auraq2")
+CONFIG_PATH = os.path.join(_CONFIG_DIR, "config.ini")
+
+# --------------------------------------------------------------------------- #
+# Default values                                                                #
+# --------------------------------------------------------------------------- #
+_DEFAULTS: dict[str, dict[str, str]] = {
+    "General": {
+        "download_directory": os.path.join(os.path.expanduser("~"), "Downloads", "Auraq2"),
+        "sources_order": "papacambridge,bestexamhelp,dynamicpapers",
+        "groq_api_key": "",
+        "max_download_workers": "10",
+        "max_registry_workers": "4",
+    },
+    "Filters": {
+        "remove_blank": "yes",
+        "remove_additional": "yes",
+        "remove_formula": "no",
+    },
+    "Clipping": {
+        "qp_top_margin": "50",
+        "qp_bottom_margin": "60",
+        "ms_top_margin": "50",
+        "ms_bottom_margin": "40",
+        "text_end_padding": "8",
+    },
+    "AI": {
+        "batch_confidence_threshold": "0.70",
+        "heuristic_fallback_score": "6",
+        "ai_mode": "hybrid",  # "batch", "heuristics", "hybrid"
+    },
+}
+
+
+def init_config() -> configparser.ConfigParser:
+    """Create config file with defaults if it doesn't exist; merge missing keys otherwise."""
+    os.makedirs(_CONFIG_DIR, exist_ok=True)
+    config = configparser.ConfigParser()
+
+    if not os.path.exists(CONFIG_PATH):
+        for section, options in _DEFAULTS.items():
+            config[section] = options
+        _write(config)
+    else:
+        config.read(CONFIG_PATH, encoding="utf-8")
+        updated = False
+        for section, options in _DEFAULTS.items():
+            if section not in config:
+                config[section] = options
+                updated = True
+            else:
+                for key, val in options.items():
+                    if key not in config[section]:
+                        config[section][key] = val
+                        updated = True
+        if updated:
+            _write(config)
+
+    return config
+
+
+def load_config() -> configparser.ConfigParser:
+    """Load and return the current configuration, initialising if absent."""
+    if not os.path.exists(CONFIG_PATH):
+        return init_config()
+    config = configparser.ConfigParser()
+    config.read(CONFIG_PATH, encoding="utf-8")
+    return config
+
+
+def save_config(
+    download_dir: str,
+    sources: str,
+    groq_api_key: str,
+    remove_blank: bool,
+    remove_additional: bool,
+    remove_formula: bool,
+    ai_mode: str = "hybrid",
+) -> None:
+    """Persist updated user settings."""
+    os.makedirs(_CONFIG_DIR, exist_ok=True)
+    config = load_config()
+
+    config["General"]["download_directory"] = download_dir
+    config["General"]["sources_order"] = sources
+    config["General"]["groq_api_key"] = groq_api_key
+
+    config["Filters"] = {
+        "remove_blank": "yes" if remove_blank else "no",
+        "remove_additional": "yes" if remove_additional else "no",
+        "remove_formula": "yes" if remove_formula else "no",
+    }
+
+    if "AI" not in config:
+        config["AI"] = {}
+    config["AI"]["ai_mode"] = ai_mode
+
+    _write(config)
+
+
+def _write(config: configparser.ConfigParser) -> None:
+    with open(CONFIG_PATH, "w", encoding="utf-8") as fh:
+        config.write(fh)
