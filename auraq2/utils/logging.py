@@ -50,7 +50,7 @@ def setup_logger(verbose_level: int = 0, log_to_file: bool = False) -> logging.L
     # Console handler
     ch = logging.StreamHandler(sys.stdout)
     ch.setLevel(level)
-    fmt = "%(levelname)s %(asctime)s — %(message)s"
+    fmt = "%(levelname)s %(asctime)s - %(message)s"
     date_fmt = "%H:%M:%S"
     if sys.stdout.isatty():
         ch.setFormatter(_ColorFormatter(fmt, datefmt=date_fmt))

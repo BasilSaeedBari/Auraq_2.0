@@ -283,4 +283,4 @@ def build_topical_booklets(
                 except Exception:
                     pass
 
-    logger.info(f"Topical booklet generation complete → {output_dir}")
+    logger.info(f"Topical booklet generation complete -> {output_dir}")

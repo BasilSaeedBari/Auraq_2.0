@@ -65,7 +65,7 @@ Q_NUM_X_FRACTION  = 0.14   # question numbers
 SUB_PART_X_FRACTION = 0.28  # sub-part labels like (a), (b)
 
 # Regex patterns
-_RE_Q_NUM   = re.compile(r"^(?:Question\s+)?(\d{1,2})(?:\s*[.):]\s*|$)", re.IGNORECASE)
+_RE_Q_NUM   = re.compile(r"^(?:Question\s+)?(\d{1,2})\b", re.IGNORECASE)
 _RE_SUB_ALPHA = re.compile(r"^\(?([a-z])\)?\s*$")          # (a) or a)
 _RE_SUB_ROMAN = re.compile(r"^\(?(i{1,3}|iv|vi{0,3}|ix)\)?\s*$", re.IGNORECASE)
 _RE_SUB_LABEL = re.compile(r"^\(?([a-z])\)?")               # looser: starts with (a), (b) …
@@ -530,7 +530,7 @@ def build_registry(
         doc.close()
 
     q_count = len(registry.get("questions", []))
-    logger.info(f"  → {q_count} questions detected in {paper_id}")
+    logger.info(f"  -> {q_count} questions detected in {paper_id}")
     return registry
 
 

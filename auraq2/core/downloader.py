@@ -146,7 +146,7 @@ def download_pdf(url: str, local_path: str) -> bool:
             os.makedirs(os.path.dirname(local_path), exist_ok=True)
             with open(local_path, "wb") as fh:
                 fh.write(r.content)
-            logger.info(f"✅ Downloaded: {os.path.basename(local_path)}")
+            logger.info(f"[OK] Downloaded: {os.path.basename(local_path)}")
             return True
         if r.status_code == 404:
             logger.debug(f"404: {url}")
@@ -203,7 +203,7 @@ def download_spec(spec: dict, base_dir: str, source_order: list[str]) -> bool:
                     if download_pdf(href, local_path):
                         return True
 
-    logger.warning(f"❌ Failed all sources: {_filename_from_spec(spec)}")
+    logger.warning(f"[FAILED] Failed all sources: {_filename_from_spec(spec)}")
     return False
 
 
@@ -273,7 +273,7 @@ def download_batch(
     success_count = 0
 
     logger.info(f"Starting batch download: {total} files, {max_workers} workers")
-    logger.info(f"Source priority: {' → '.join(source_order)}")
+    logger.info(f"Source priority: {' -> '.join(source_order)}")
 
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = {

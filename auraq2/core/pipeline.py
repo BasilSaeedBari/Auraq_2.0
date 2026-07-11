@@ -120,7 +120,7 @@ def run_pipeline(
     is_mcq       = is_mcq_paper(curriculum, subject_code, paper)
     syllabus_name = (
         f"{curriculum} {sub_details.get('name', '')} "
-        f"({subject_code}) — Component {paper}"
+        f"({subject_code}) - Component {paper}"
     )
 
     beh_slug = sub_details.get("beh_slug")
@@ -137,7 +137,7 @@ def run_pipeline(
     years = list(range(start_year, end_year + 1))
 
     # ── Stage 1: Download ─────────────────────────────────────────────────────
-    logger.info("Stage 1: Downloading PDFs …")
+    logger.info("Stage 1: Downloading PDFs ...")
     specs = generate_specs(
         curriculum, subject_code, beh_slug, dp_slug,
         years, sessions, [paper], full_variants,
@@ -163,7 +163,7 @@ def run_pipeline(
         return False
 
     # ── Stage 2: Registry Building (ProcessPoolExecutor) ─────────────────────
-    logger.info("Stage 2: Building question registries (parallel) …")
+    logger.info("Stage 2: Building question registries (parallel) ...")
     _cb("Parsing", 0, len(qp_specs) + len(ms_specs))
 
     # Build argument tuples for the picklable worker
@@ -206,7 +206,7 @@ def run_pipeline(
             _cb("Parsing", completed, len(worker_args))
 
     # ── Stage 3: AI Classification ────────────────────────────────────────────
-    logger.info("Stage 3: Classifying questions …")
+    logger.info("Stage 3: Classifying questions ...")
     _cb("Classifying", 0, len(qp_registries))
 
     for idx, (pid, reg) in enumerate(qp_registries.items()):
@@ -233,7 +233,7 @@ def run_pipeline(
         logger.info("Topical generation disabled — pipeline complete.")
         return True
 
-    logger.info("Stage 4: Assembling question records …")
+    logger.info("Stage 4: Assembling question records ...")
 
     # Build a lookup: paper_id → spec (for MS matching)
     ms_lookup: dict[str, dict] = {}
@@ -275,7 +275,7 @@ def run_pipeline(
             })
 
     # ── Stage 5: Topical Booklets ─────────────────────────────────────────────
-    logger.info(f"Stage 5: Building topical booklets for {len(paper_questions)} questions …")
+    logger.info(f"Stage 5: Building topical booklets for {len(paper_questions)} questions ...")
     _cb("Compiling", 0, len(topics))
 
     os.makedirs(output_dir, exist_ok=True)
@@ -295,6 +295,6 @@ def run_pipeline(
     _cb("Compiling", len(topics), len(topics))
 
     logger.info("=" * 60)
-    logger.info("Auraq 2.0 Pipeline Completed Successfully ✅")
+    logger.info("Auraq 2.0 Pipeline Completed Successfully [OK]")
     logger.info("=" * 60)
     return True
