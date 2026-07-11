@@ -16,6 +16,7 @@ _DEFAULTS: dict[str, dict[str, str]] = {
         "download_directory": os.path.join(os.path.expanduser("~"), "Downloads", "Auraq2"),
         "sources_order": "papacambridge,bestexamhelp,dynamicpapers",
         "groq_api_key": "",
+        "groq_model": "llama-3.3-70b-versatile",
         "max_download_workers": "10",
         "max_registry_workers": "4",
     },
@@ -81,6 +82,7 @@ def save_config(
     download_dir: str,
     sources: str,
     groq_api_key: str,
+    groq_model: str,
     remove_blank: bool,
     remove_additional: bool,
     remove_formula: bool,
@@ -93,6 +95,7 @@ def save_config(
     config["General"]["download_directory"] = download_dir
     config["General"]["sources_order"] = sources
     config["General"]["groq_api_key"] = groq_api_key
+    config["General"]["groq_model"] = groq_model
 
     config["Filters"] = {
         "remove_blank": "yes" if remove_blank else "no",

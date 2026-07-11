@@ -109,6 +109,7 @@ def run_pipeline(
     qp_bot    = int(config.get("Clipping", "qp_bottom_margin", fallback="60"))
     ms_top    = int(config.get("Clipping", "ms_top_margin",    fallback="50"))
     ms_bot    = int(config.get("Clipping", "ms_bottom_margin", fallback="40"))
+    groq_model = os.environ.get("GROQ_MODEL") or config.get("General", "groq_model", fallback="llama-3.3-70b-versatile")
 
     # Inject tunable constants into the classifier at runtime
     import auraq2.core.ai_classifier as _clf
@@ -238,10 +239,10 @@ def run_pipeline(
             classify_paper_heuristics(reg, topics, kw_rules, h_score)
         elif ai_mode == "batch" and groq_api_key:
             classify_paper_batch(reg, topics, syllabus_name, groq_api_key,
-                                 kw_rules, conf_threshold, h_score)
+                                 groq_model, kw_rules, conf_threshold, h_score)
         else:  # hybrid
             classify_paper_batch(reg, topics, syllabus_name, groq_api_key or "",
-                                 kw_rules, conf_threshold, h_score)
+                                 groq_model, kw_rules, conf_threshold, h_score)
         # Persist updated registry (now has topic + confidence)
         for spec in qp_specs:
             if paper_id_from_spec(spec) == pid:

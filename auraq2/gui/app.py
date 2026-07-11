@@ -79,7 +79,7 @@ class PreferencesWindow(tk.Toplevel):
     def __init__(self, parent: tk.Widget) -> None:
         super().__init__(parent, bg=COLOR_BG)
         self.title("Preferences — Auraq 2.0")
-        self.geometry("560x380")
+        self.geometry("560x450")
         self.resizable(False, False)
         self.transient(parent)
         self.grab_set()
@@ -125,12 +125,25 @@ class PreferencesWindow(tk.Toplevel):
             row=4, column=0, sticky="w", pady=(0, 14)
         )
 
-        _lbl("Sources Priority (comma-separated):", 5)
+        _lbl("Groq Model:", 5)
+        self._model_var = tk.StringVar(value=self._config.get("General", "groq_model", fallback="llama-3.3-70b-versatile"))
+        model_options = [
+            "llama-3.3-70b-versatile",
+            "llama-4-scout",
+            "qwen/qwen-3-32b",
+            "qwen/qwen-3.6-27b",
+            "openai/gpt-oss-120b",
+            "openai/gpt-oss-20b",
+        ]
+        model_cb = ttk.Combobox(frm, textvariable=self._model_var, values=model_options, state="readonly", font=("Segoe UI", 10))
+        model_cb.grid(row=6, column=0, columnspan=2, sticky="ew", pady=(0, 14))
+
+        _lbl("Sources Priority (comma-separated):", 7)
         self._sources_var = tk.StringVar(value=self._config.get("General", "sources_order", fallback=""))
-        _entry(6, self._sources_var)
+        _entry(8, self._sources_var)
 
         btn_row = tk.Frame(frm, bg=COLOR_BG)
-        btn_row.grid(row=7, column=0, columnspan=2, sticky="e")
+        btn_row.grid(row=9, column=0, columnspan=2, sticky="e")
         StyledButton(btn_row, text="Cancel",          command=self.destroy,      is_primary=False).pack(side="left", padx=8)
         StyledButton(btn_row, text="Save Preferences", command=self._save, is_primary=True).pack(side="right")
 
@@ -145,6 +158,7 @@ class PreferencesWindow(tk.Toplevel):
             download_dir=self._dir_var.get(),
             sources=self._sources_var.get(),
             groq_api_key=self._groq_var.get(),
+            groq_model=self._model_var.get(),
             remove_blank=cfg.getboolean("Filters", "remove_blank", fallback=True),
             remove_additional=cfg.getboolean("Filters", "remove_additional", fallback=True),
             remove_formula=cfg.getboolean("Filters", "remove_formula", fallback=False),

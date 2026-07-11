@@ -28,7 +28,6 @@ from auraq2.utils.logging import get_logger
 logger = get_logger()
 
 GROQ_API_URL  = "https://api.groq.com/openai/v1/chat/completions"
-GROQ_MODEL    = "llama-3.3-70b-versatile"
 REQUEST_DELAY = 1.5   # seconds between Groq calls (rate-limit safety)
 
 # Strong heuristic override threshold:
@@ -87,7 +86,7 @@ def _build_batch_prompt(
 # --------------------------------------------------------------------------- #
 # Groq API call                                                                  #
 # --------------------------------------------------------------------------- #
-def _call_groq_batch(prompt: str, groq_key: str) -> str | None:
+def _call_groq_batch(prompt: str, groq_key: str, model: str) -> str | None:
     """
     Send a batch classification request to Groq.
     Returns the raw response string or None on failure.
@@ -97,7 +96,7 @@ def _call_groq_batch(prompt: str, groq_key: str) -> str | None:
         "Content-Type":  "application/json",
     }
     payload = {
-        "model":    GROQ_MODEL,
+        "model":    model,
         "messages": [
             {
                 "role":    "system",
@@ -263,6 +262,7 @@ def classify_paper_batch(
     topics: list[str],
     syllabus_name: str,
     groq_key: str,
+    groq_model: str,
     keyword_rules: dict | None = None,
     confidence_threshold: float = 0.80,   # raised from 0.70
     heuristic_fallback_score: int = 6,
@@ -307,7 +307,7 @@ def classify_paper_batch(
     ai_results: dict[int, tuple[str, float]] = {}
     if groq_key:
         prompt = _build_batch_prompt(questions, topics, syllabus_name)
-        raw    = _call_groq_batch(prompt, groq_key)
+        raw    = _call_groq_batch(prompt, groq_key, groq_model)
         if raw:
             q_nums     = [q["q_num"] for q in questions]
             ai_results = _parse_batch_response(raw, topics, q_nums)
