@@ -221,33 +221,140 @@ def _parse_batch_response(
 
 
 # --------------------------------------------------------------------------- #
+# Heuristic exclusions & cleaning                                                #
+# --------------------------------------------------------------------------- #
+_EXCLUSIONS = {
+    r'\bsin\b': ['since', 'sincere', 'single', 'singing', 'sing'],
+    r'\bcos\b': ['cost', 'cosmic', 'cosmopolitan', 'costs', 'costing'],
+    r'\btan\b': ['tangible', 'tangle', 'tank', 'tanks', 'tangent'],
+}
+
+
+def _clean_text(text: str) -> str:
+    """Remove false-positive words before matching."""
+    for pattern, exclusions in _EXCLUSIONS.items():
+        for word in exclusions:
+            text = re.sub(r'\b' + re.escape(word) + r'\b', '', text, flags=re.IGNORECASE)
+    return text
+
+
+def _check_topic_coherence(topic: str, text: str, matched_patterns: list[str]) -> float:
+    """
+    Check if the assigned topic is coherent with the text content.
+    Returns a coherence score multiplier between 0.0 and 1.0.
+    """
+    # Check for contradictory terms
+    contradictions = {
+        'Trigonometry': ['logarithm', 'exponential', 'domain', 'range'],
+        'Functions': ['sin', 'cos', 'tan', 'radian', 'sector'],
+        'Factors of Polynomials': ['log', 'ln', 'sin', 'cos'],
+    }
+    
+    text_lower = text.lower()
+    penalty = 0.0
+    for contra in contradictions.get(topic, []):
+        if contra in text_lower:
+            penalty += 0.15
+            
+    # Boost if multiple matched patterns
+    boost = 0.0
+    if len(matched_patterns) >= 3:
+        boost = 0.15
+        
+    return max(0.2, min(1.0, 1.0 - penalty + boost))
+
+
+def _calculate_final_confidence(scores: dict, topic: str, text: str) -> float:
+    """Calculate a more meaningful confidence score based on matches, tf-idf weights, and coherence."""
+    if not scores or topic not in scores:
+        return 0.0
+    
+    total_score, matched_patterns = scores[topic]
+    matched_count = len(matched_patterns)
+    if matched_count == 0:
+        return 0.0
+    
+    # Precomputed term weights from corpus analysis (TF-IDF style)
+    TERM_WEIGHTS = {
+        'cosec': 1.0, 'sec': 1.0, 'cot': 1.0,  # Rare terms -> high weight
+        'sin': 0.5, 'cos': 0.5, 'tan': 0.5,    # Common terms -> lower
+        'domain': 0.9, 'range': 0.9,
+        'fg': 1.0, 'gf': 1.0,
+        'f^-1': 1.0, 'g^-1': 1.0,
+    }
+    
+    tfidf_score = 0.0
+    for term in matched_patterns:
+        # Check standard key terms
+        weight = 0.3
+        for k, w in TERM_WEIGHTS.items():
+            if k in term.lower():
+                weight = w
+                break
+        
+        # Penalise if the term is highly ambiguous
+        ambiguity_penalty = 0.8 if any(amb in term.lower() for amb in ['function', 'solve', 'equation']) else 1.0
+        tfidf_score += weight * ambiguity_penalty
+    
+    # Normalize by total words (longer texts need more evidence)
+    total_words = len(text.split())
+    normalized_tfidf = min(0.95, tfidf_score / (1.0 + total_words / 50.0))
+    
+    # Coherence multiplier
+    coherence = _check_topic_coherence(topic, text, matched_patterns)
+    
+    # Final confidence calculation
+    final_conf = normalized_tfidf * coherence
+    return max(0.0, min(0.95, final_conf))
+
+
+# --------------------------------------------------------------------------- #
 # Heuristic scoring                                                              #
 # --------------------------------------------------------------------------- #
-def _heuristic_score(text: str, keyword_rules: dict) -> dict[str, int]:
-    """Return a dict of topic -> cumulative score (boolean matching per rule with word boundaries)."""
-    text_lower = text.lower()
-    scores: dict[str, int] = {}
+def _heuristic_score(text: str, keyword_rules: dict) -> dict[str, tuple[int, list[str]]]:
+    """Return a dict of topic -> (total_score, matched_patterns)."""
+    cleaned = _clean_text(text)
+    text_lower = cleaned.lower()
+    scores: dict[str, tuple[int, list[str]]] = {}
+    
     for topic, rules in keyword_rules.items():
-        s = 0
+        total = 0
+        matched = []
         for rule in rules:
+            # Check if weight is embedded as "pattern|weight"
+            weight = 3
+            raw_pattern = rule
+            if '|' in rule:
+                parts = rule.split('|')
+                raw_pattern = parts[0]
+                try:
+                    weight = int(parts[1])
+                except ValueError:
+                    pass
+            
+            # Apply boundaries
+            pattern = raw_pattern
+            if pattern and pattern.startswith(r'\b'):
+                pass
+            elif pattern and pattern[0].isalnum():
+                pattern = r'\b' + pattern
+            
+            if pattern:
+                last = pattern[-1]
+                if last.isalnum():
+                    pattern = pattern + r'\b'
+                elif last in ('?', '*', '+') and len(pattern) > 1 and pattern[-2].isalnum():
+                    pattern = pattern + r'\b'
+            
             try:
-                # Add word boundaries to avoid partial word match (e.g. "sin" inside "since")
-                pattern = rule
-                if pattern and pattern[0].isalnum():
-                    pattern = r'\b' + pattern
-                if pattern:
-                    last = pattern[-1]
-                    if last.isalnum():
-                        pattern = pattern + r'\b'
-                    elif last in ('?', '*', '+') and len(pattern) > 1 and pattern[-2].isalnum():
-                        pattern = pattern + r'\b'
-                
-                # Boolean matching: check presence instead of frequency to prevent keyword spamming
                 if re.search(pattern, text_lower, re.IGNORECASE):
-                    s += 3
+                    total += weight
+                    matched.append(raw_pattern)
             except Exception:
                 pass
-        scores[topic] = s
+        
+        if total > 0:
+            scores[topic] = (total, matched)
     return scores
 
 
@@ -265,10 +372,10 @@ def classify_paper_heuristics(
         text   = q.get("text_snippet", "")
         scores = _heuristic_score(text, keyword_rules)
         if scores:
-            best = max(scores, key=lambda k: scores[k])
-            if scores[best] >= fallback_score:
+            best = max(scores, key=lambda k: scores[k][0])
+            if scores[best][0] >= fallback_score:
                 q["topic"]      = best
-                q["confidence"] = min(0.85, scores[best] / 10.0)
+                q["confidence"] = round(_calculate_final_confidence(scores, best, text), 3)
                 continue
         q["topic"]      = "Unclassified"
         q["confidence"] = 0.0
@@ -314,14 +421,17 @@ def classify_paper_batch(
 
     # ── Step 1: build heuristic scores for all questions ────────────────────
     h_scores: dict[int, tuple[str, int]] = {}
+    h_full_scores: dict[int, dict] = {}
     for q in questions:
         text   = q.get("text_snippet", "")
         scores = _heuristic_score(text, kr)
         if scores:
-            best = max(scores, key=lambda k: scores[k])
-            h_scores[q["q_num"]] = (best, scores[best])
+            best = max(scores, key=lambda k: scores[k][0])
+            h_scores[q["q_num"]] = (best, scores[best][0])
+            h_full_scores[q["q_num"]] = scores
         else:
             h_scores[q["q_num"]] = ("Unclassified", 0)
+            h_full_scores[q["q_num"]] = {}
 
     # ── Step 2: Groq batch call ──────────────────────────────────────────────
     ai_results: dict[int, tuple[str, float]] = {}
@@ -350,8 +460,8 @@ def classify_paper_batch(
         ai_topic = ai_topic or ""
 
         if h_score >= STRONG_HEURISTIC_SCORE and ai_conf < STRONG_AI_THRESHOLD:
-            # Strong keyword signal beats a moderately-confident AI
-            final, conf = h_topic, min(0.95, h_score / 15.0)
+            final = h_topic
+            conf = _calculate_final_confidence(h_full_scores[qn], h_topic, q.get("text_snippet", ""))
             reason = "strong-heuristic"
 
         elif ai_topic and ai_conf >= STRONG_AI_THRESHOLD:
@@ -361,12 +471,15 @@ def classify_paper_batch(
 
         elif ai_topic and h_topic and ai_topic == h_topic:
             # Both agree — high trust in AI label
-            final, conf = ai_topic, max(ai_conf, min(0.95, h_score / 15.0))
+            final = ai_topic
+            h_conf = _calculate_final_confidence(h_full_scores[qn], h_topic, q.get("text_snippet", ""))
+            conf = max(ai_conf, h_conf)
             reason = "agreement"
 
         elif h_score >= heuristic_fallback_score:
             # Heuristic is good enough on its own
-            final, conf = h_topic, min(0.85, h_score / 10.0)
+            final = h_topic
+            conf = _calculate_final_confidence(h_full_scores[qn], h_topic, q.get("text_snippet", ""))
             reason = "heuristic-fallback"
 
         elif ai_topic and ai_conf >= confidence_threshold:
@@ -376,7 +489,8 @@ def classify_paper_batch(
 
         elif h_score > 0:
             # Weak heuristic signal — use it but flag low confidence
-            final, conf = h_topic, min(0.5, h_score / 10.0)
+            final = h_topic
+            conf = min(0.5, _calculate_final_confidence(h_full_scores[qn], h_topic, q.get("text_snippet", "")))
             reason = "heuristic-weak"
 
         else:
