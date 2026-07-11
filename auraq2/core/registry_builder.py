@@ -170,7 +170,7 @@ def _get_ms_header_y1(page: fitz.Page) -> float | None:
     """
     for b in page.get_text("blocks"):
         x0, y0, x1, y1, text, *_ = b
-        if "Question" in text and "Answer" in text and "Marks" in text:
+        if "Question" in text and ("Answer" in text or "Scheme" in text) and "Marks" in text:
             # Convert to visual coords and return vy1
             _, _, _, vy1 = get_visual_coords(x0, y0, x1, y1, page)
             return vy1
@@ -192,19 +192,30 @@ def _get_ms_question_starts(
     seen: set[int] = set()
     cached_header_y1: float | None = None
     cached_header_x0: float | None = None
+    header_found_once = False
 
     for p in range(start_page, end_page + 1):
         page = doc[p]
+        
+        # Check for generic/notes page keywords
+        text_all = page.get_text("text").lower()
+        if any(kw in text_all for kw in ["generic marking principles", "mark scheme notes", "types of mark", "guide to marking"]):
+            continue
+
         header_y1 = _get_ms_header_y1(page)
         if header_y1 is not None:
             cached_header_y1 = header_y1
+            header_found_once = True
             # Find header x0 for column alignment check
             for b in page.get_text("blocks"):
                 x0, y0, x1, y1, text, *_ = b
-                if "Question" in text and "Answer" in text and "Marks" in text:
+                if "Question" in text and ("Answer" in text or "Scheme" in text) and "Marks" in text:
                     vx0, *_ = get_visual_coords(x0, y0, x1, y1, page)
                     cached_header_x0 = vx0
                     break
+
+        if not header_found_once:
+            continue
 
         current_hy1 = cached_header_y1 if cached_header_y1 is not None else 80.0
         current_hx0 = cached_header_x0 if cached_header_x0 is not None else page.rect.x1 * 0.05

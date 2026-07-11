@@ -187,25 +187,6 @@ def run_pipeline(
     #                registry_path, expected_q_nums,
     #                remove_blank, remove_formula, remove_additional, is_verbose)
     is_verbose = logger.isEnabledFor(logging.DEBUG)
-    worker_args: list[tuple] = []
-    for spec in qp_specs:
-        pdf_path  = get_local_path(base_dir, spec)
-        reg_path  = get_registry_path(base_dir, spec)
-        pid       = paper_id_from_spec(spec)
-        worker_args.append((
-            pdf_path, "qp", pid, qp_top, qp_bot, reg_path, None,
-            remove_blank, remove_formula, remove_additional,
-            is_verbose,
-        ))
-    for spec in ms_specs:
-        pdf_path  = get_local_path(base_dir, spec)
-        reg_path  = get_registry_path(base_dir, spec)
-        pid       = paper_id_from_spec(spec)
-        worker_args.append((
-            pdf_path, "ms", pid, ms_top, ms_bot, reg_path, None,
-            remove_blank, remove_formula, remove_additional,
-            is_verbose,
-        ))
 
     # Use "spawn" context for Windows safety
     ctx = multiprocessing.get_context("spawn")
@@ -214,24 +195,69 @@ def run_pipeline(
     ms_registries: dict[str, dict] = {}
     completed = 0
 
-    with ProcessPoolExecutor(max_workers=max_registry_workers, mp_context=ctx) as executor:
-        future_map = {
-            executor.submit(_build_registry_worker, args): args
-            for args in worker_args
-        }
-        for future in as_completed(future_map):
-            args = future_map[future]
-            try:
-                pid, registry = future.result()
-                dt = args[1]  # doc_type
-                if dt == "qp":
+    # ── Phase 2a: QP Registries ──────────────────────────────────────────────
+    qp_worker_args: list[tuple] = []
+    for spec in qp_specs:
+        pdf_path  = get_local_path(base_dir, spec)
+        reg_path  = get_registry_path(base_dir, spec)
+        pid       = paper_id_from_spec(spec)
+        qp_worker_args.append((
+            pdf_path, "qp", pid, qp_top, qp_bot, reg_path, None,
+            remove_blank, remove_formula, remove_additional,
+            is_verbose,
+        ))
+
+    if qp_worker_args:
+        with ProcessPoolExecutor(max_workers=max_registry_workers, mp_context=ctx) as executor:
+            future_map = {
+                executor.submit(_build_registry_worker, args): args
+                for args in qp_worker_args
+            }
+            for future in as_completed(future_map):
+                args = future_map[future]
+                try:
+                    pid, registry = future.result()
                     qp_registries[pid] = registry
-                else:
+                except Exception as exc:
+                    logger.error(f"QP Registry worker failed for {args[2]}: {exc}")
+                completed += 1
+                _cb("Parsing", completed, len(qp_specs) + len(ms_specs))
+
+    # ── Phase 2b: MS Registries ──────────────────────────────────────────────
+    ms_worker_args: list[tuple] = []
+    for spec in ms_specs:
+        pdf_path  = get_local_path(base_dir, spec)
+        reg_path  = get_registry_path(base_dir, spec)
+        pid       = paper_id_from_spec(spec)
+
+        # Match with QP registry to find expected question numbers
+        qp_pid = pid.replace("_ms_", "_qp_")
+        qp_reg = qp_registries.get(qp_pid)
+        expected_q_nums = None
+        if qp_reg:
+            expected_q_nums = [q["q_num"] for q in qp_reg.get("questions", [])]
+
+        ms_worker_args.append((
+            pdf_path, "ms", pid, ms_top, ms_bot, reg_path, expected_q_nums,
+            remove_blank, remove_formula, remove_additional,
+            is_verbose,
+        ))
+
+    if ms_worker_args:
+        with ProcessPoolExecutor(max_workers=max_registry_workers, mp_context=ctx) as executor:
+            future_map = {
+                executor.submit(_build_registry_worker, args): args
+                for args in ms_worker_args
+            }
+            for future in as_completed(future_map):
+                args = future_map[future]
+                try:
+                    pid, registry = future.result()
                     ms_registries[pid] = registry
-            except Exception as exc:
-                logger.error(f"Registry worker failed for {args[2]}: {exc}")
-            completed += 1
-            _cb("Parsing", completed, len(worker_args))
+                except Exception as exc:
+                    logger.error(f"MS Registry worker failed for {args[2]}: {exc}")
+                completed += 1
+                _cb("Parsing", completed, len(qp_specs) + len(ms_specs))
 
     # ── Stage 3: AI Classification ────────────────────────────────────────────
     logger.info("Stage 3: Classifying questions ...")
