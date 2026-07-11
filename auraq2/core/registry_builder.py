@@ -61,7 +61,7 @@ logger = get_logger()
 TEXT_PAD = 8.0
 
 # Maximum fraction of page width for a question-number block to occupy from the left.
-Q_NUM_X_FRACTION  = 0.14   # question numbers
+Q_NUM_X_FRACTION  = 0.10   # question numbers
 SUB_PART_X_FRACTION = 0.28  # sub-part labels like (a), (b)
 
 # Regex patterns
@@ -290,6 +290,17 @@ def _build_qp_registry(
             if m:
                 q_num = int(m.group(1))
                 if 1 <= q_num <= 30 and q_num not in seen_q:
+                    # Additional validation to prevent false positives in mathematical expressions
+                    rest = blk.text[m.end():].strip()
+                    if len(blk.text) <= 30:
+                        # Apply strict mathematical checks only to short blocks (stray expressions)
+                        if re.search(r'\d', rest):
+                            continue
+                        if re.search(r'[+\-*/=]', rest):
+                            continue
+                        if rest and not re.match(r'^(?:[\.\)]?\s*\(?[a-z]\)?|[\.\)]+)\s*$', rest, re.IGNORECASE):
+                            continue
+
                     seen_q.add(q_num)
                     q_starts.append((q_num, p_idx, blk.y0))
 
