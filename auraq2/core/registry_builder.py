@@ -292,7 +292,7 @@ def _build_qp_registry(
                 if 1 <= q_num <= 30 and q_num not in seen_q:
                     # Additional validation to prevent false positives in mathematical expressions
                     rest = blk.text[m.end():].strip()
-                    if len(blk.text) <= 30:
+                    if len(blk.text) <= 15:
                         # Apply strict mathematical checks only to short blocks (stray expressions)
                         if re.search(r'\d', rest):
                             continue
