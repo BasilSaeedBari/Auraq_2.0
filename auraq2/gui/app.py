@@ -129,9 +129,10 @@ class PreferencesWindow(tk.Toplevel):
         self._model_var = tk.StringVar(value=self._config.get("General", "groq_model", fallback="llama-3.3-70b-versatile"))
         model_options = [
             "llama-3.3-70b-versatile",
-            "llama-4-scout",
-            "qwen/qwen-3-32b",
-            "qwen/qwen-3.6-27b",
+            "llama-3.1-8b-instant",
+            "qwen/qwen3-32b",
+            "qwen/qwen3.6-27b",
+            "meta-llama/llama-4-scout-17b-16e-instruct",
             "openai/gpt-oss-120b",
             "openai/gpt-oss-20b",
         ]

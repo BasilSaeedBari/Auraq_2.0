@@ -111,6 +111,8 @@ def _call_groq_batch(prompt: str, groq_key: str, model: str) -> str | None:
         ],
         "temperature":     0.05,   # Very low temp for deterministic, factual output
         "response_format": {"type": "json_object"},
+        "max_completion_tokens": 4096,
+        "top_p": 1.0,
     }
 
     try:
