@@ -32,8 +32,10 @@ _DEFAULTS: dict[str, dict[str, str]] = {
         "text_end_padding": "8",
     },
     "AI": {
-        "batch_confidence_threshold": "0.70",
+        "batch_confidence_threshold": "0.80",    # raised from 0.70
         "heuristic_fallback_score": "6",
+        "strong_heuristic_score": "12",          # heuristic overrides AI below strong_ai_threshold
+        "strong_ai_threshold": "0.90",           # AI is unconditionally trusted above this
         "ai_mode": "hybrid",  # "batch", "heuristics", "hybrid"
     },
 }

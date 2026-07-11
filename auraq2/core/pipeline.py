@@ -101,12 +101,19 @@ def run_pipeline(
     )
     sources  = [s.strip() for s in
                 config.get("General", "sources_order", fallback="papacambridge,bestexamhelp,dynamicpapers").split(",")]
-    conf_threshold = float(config.get("AI", "batch_confidence_threshold", fallback="0.70"))
-    h_score   = int(config.get("AI", "heuristic_fallback_score", fallback="6"))
+    conf_threshold = float(config.get("AI", "batch_confidence_threshold", fallback="0.80"))
+    h_score        = int(config.get("AI", "heuristic_fallback_score",     fallback="6"))
+    strong_h_score = int(config.get("AI", "strong_heuristic_score",       fallback="12"))
+    strong_ai_thr  = float(config.get("AI", "strong_ai_threshold",        fallback="0.90"))
     qp_top    = int(config.get("Clipping", "qp_top_margin",    fallback="50"))
     qp_bot    = int(config.get("Clipping", "qp_bottom_margin", fallback="60"))
     ms_top    = int(config.get("Clipping", "ms_top_margin",    fallback="50"))
     ms_bot    = int(config.get("Clipping", "ms_bottom_margin", fallback="40"))
+
+    # Inject tunable constants into the classifier at runtime
+    import auraq2.core.ai_classifier as _clf
+    _clf.STRONG_HEURISTIC_SCORE = strong_h_score
+    _clf.STRONG_AI_THRESHOLD    = strong_ai_thr
 
     # ── Validate subject ------------------------------------------------------
     load_subjects_registry()
