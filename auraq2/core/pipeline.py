@@ -364,6 +364,10 @@ def run_pipeline(
             for ms_q in ms_reg.get("questions", []):
                 ms_by_q[ms_q["q_num"]] = ms_q
 
+        # Get filter flags stored in registries
+        qp_filter_flags = qp_reg.get("filter_flags")
+        ms_filter_flags = ms_reg.get("filter_flags") if ms_reg else None
+
         for q in qp_reg.get("questions", []):
             # Build a deterministic source URL for the CSV source map
             _qp_spec = next((s for s in qp_specs if paper_id_from_spec(s) == pid), None)
@@ -372,6 +376,8 @@ def run_pipeline(
                 "paper_id": pid,
                 "qp_path":  qp_path,
                 "ms_path":  ms_path,
+                "qp_filter_flags": qp_filter_flags,
+                "ms_filter_flags": ms_filter_flags,
                 "question": q,
                 "ms_entry": ms_by_q.get(q["q_num"]),
                 "sort_key": sort_key,

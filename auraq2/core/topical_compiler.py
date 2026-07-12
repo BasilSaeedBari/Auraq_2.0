@@ -217,14 +217,26 @@ def build_topical_booklets(
         logger.info(f"Building booklets: {topic} ({q_count} questions)")
 
         # ── Open all required source docs ──────────────────────────────────
-        open_docs: dict[str, fitz.Document] = {}
+        open_docs: dict[tuple, fitz.Document] = {}
 
-        def _get_doc(path: str | None) -> fitz.Document | None:
+        def _get_doc(path: str | None, filter_flags: dict | None = None) -> fitz.Document | None:
             if not path or not os.path.exists(path):
                 return None
-            if path not in open_docs:
-                open_docs[path] = fitz.open(path)
-            return open_docs[path]
+            flags_key = tuple(sorted(filter_flags.items())) if filter_flags else None
+            key = (path, flags_key)
+            if key not in open_docs:
+                if filter_flags:
+                    from auraq2.core.compiler import filter_pdf
+                    open_docs[key] = filter_pdf(
+                        path,
+                        remove_blank=filter_flags.get("remove_blank", True),
+                        remove_formula=filter_flags.get("remove_formula", False),
+                        remove_additional=filter_flags.get("remove_additional", True),
+                    )
+                else:
+                    logger.warning(f"No filter flags stored in registry for {os.path.basename(path)}. Falling back to unfiltered PDF extraction.")
+                    open_docs[key] = fitz.open(path)
+            return open_docs[key]
 
         try:
             # Build shared source-map rows (same question order for QP & Merged)
@@ -240,7 +252,7 @@ def build_topical_booklets(
                 "Question Paper (QP)", year_range, str(q_count),
             )
             for item in items:
-                qp_doc     = _get_doc(item.get("qp_path"))
+                qp_doc     = _get_doc(item.get("qp_path"), item.get("qp_filter_flags"))
                 q_entry    = item["question"]
                 item_label = item.get("label", "")
                 if qp_doc:
@@ -263,7 +275,7 @@ def build_topical_booklets(
                 "Marking Scheme (MS)", year_range, str(q_count),
             )
             for item in items:
-                ms_doc     = _get_doc(item.get("ms_path"))
+                ms_doc     = _get_doc(item.get("ms_path"), item.get("ms_filter_flags"))
                 ms_entry   = item.get("ms_entry")
                 item_label = item.get("label", "")
                 if ms_doc and ms_entry:
@@ -293,8 +305,8 @@ def build_topical_booklets(
                 "Questions & Solutions (Merged)", year_range, str(q_count),
             )
             for item in items:
-                qp_doc   = _get_doc(item.get("qp_path"))
-                ms_doc   = _get_doc(item.get("ms_path"))
+                qp_doc   = _get_doc(item.get("qp_path"), item.get("qp_filter_flags"))
+                ms_doc   = _get_doc(item.get("ms_path"), item.get("ms_filter_flags"))
                 q_entry  = item["question"]
                 ms_entry = item.get("ms_entry")
                 item_label = item.get("label", "")
