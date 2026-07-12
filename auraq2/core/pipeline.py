@@ -35,7 +35,7 @@ from auraq2.core.subjects_registry import (
     load_registry as load_subjects_registry,
 )
 from auraq2.core.downloader import (
-    generate_specs, download_batch, is_paper_complete,
+    generate_specs, download_batch, is_paper_complete, build_url_papacambridge,
 )
 from auraq2.core.registry_builder import (
     _build_registry_worker, load_registry_if_cached, save_registry,
@@ -167,11 +167,20 @@ def run_pipeline(
     )
     _cb("Downloading", 0, len(specs))
 
-    def _dl_cb(cur: int, total: int) -> None:
-        _cb("Downloading", cur, total)
+    # Fast-path: skip the whole download stage if every file is already cached.
+    _all_cached = all(
+        os.path.exists(get_local_path(base_dir, s)) and os.path.getsize(get_local_path(base_dir, s)) > 0
+        for s in specs
+    )
+    if _all_cached:
+        logger.info("All required PDFs already cached \u2014 skipping download.")
+        _cb("Downloading", len(specs), len(specs))
+    else:
+        def _dl_cb(cur: int, total: int) -> None:
+            _cb("Downloading", cur, total)
 
-    download_batch(specs, base_dir, sources, max_download_workers, _dl_cb)
-    _cb("Downloading", len(specs), len(specs))
+        download_batch(specs, base_dir, sources, max_download_workers, _dl_cb)
+        _cb("Downloading", len(specs), len(specs))
 
     # Separate QP and MS specs
     qp_specs = [s for s in specs if s["doc_type"] == "qp"]
@@ -342,13 +351,18 @@ def run_pipeline(
                 ms_by_q[ms_q["q_num"]] = ms_q
 
         for q in qp_reg.get("questions", []):
+            # Build a deterministic source URL for the CSV source map
+            _qp_spec = next((s for s in qp_specs if paper_id_from_spec(s) == pid), None)
+            _source_url = build_url_papacambridge(_qp_spec) if _qp_spec else ""
             paper_questions.append({
+                "paper_id": pid,
                 "qp_path":  qp_path,
                 "ms_path":  ms_path,
                 "question": q,
                 "ms_entry": ms_by_q.get(q["q_num"]),
                 "sort_key": sort_key,
                 "label":    f"{pid} Q{q['q_num']}",
+                "source_url": _source_url,
             })
 
     # ── Stage 5: Topical Booklets ─────────────────────────────────────────────

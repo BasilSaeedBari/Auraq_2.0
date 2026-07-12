@@ -11,6 +11,7 @@ Cover page design: Purple/Vintage Grape palette (preserved from v1).
 """
 from __future__ import annotations
 
+import csv
 import os
 from collections import defaultdict
 
@@ -138,6 +139,24 @@ def _safe_name(s: str) -> str:
     return s.replace(" ", "_").replace("/", "_").replace("&", "and").replace("'", "")
 
 
+# ── CSV source map writer ─────────────────────────────────────────────────────
+def _write_source_map(csv_path: str, rows: list[tuple[int, str, int, str]]) -> None:
+    """
+    Write a CSV source map alongside a topical PDF.
+
+    *rows* is a list of (s_no, paper_id, q_num, download_link) tuples in the
+    order the questions appear in the compiled PDF.
+    """
+    try:
+        with open(csv_path, "w", newline="", encoding="utf-8") as fh:
+            writer = csv.writer(fh)
+            writer.writerow(["S.NO", "Paper_ID", "Q_Num", "Download_Link"])
+            writer.writerows(rows)
+        logger.debug(f"Source map written: {csv_path}")
+    except Exception as exc:
+        logger.warning(f"Could not write source map {csv_path}: {exc}")
+
+
 # ── Main public function ───────────────────────────────────────────────────────
 def build_topical_booklets(
     paper_questions: list[dict],
@@ -208,6 +227,12 @@ def build_topical_booklets(
             return open_docs[path]
 
         try:
+            # Build shared source-map rows (same question order for QP & Merged)
+            csv_rows: list[tuple] = [
+                (sno, item.get("paper_id", ""), item["question"].get("q_num", 0), item.get("source_url", ""))
+                for sno, item in enumerate(items, 1)
+            ]
+
             # ── QP Booklet ─────────────────────────────────────────────────
             qp_dest = fitz.open()
             _create_cover_page(
@@ -215,8 +240,8 @@ def build_topical_booklets(
                 "Question Paper (QP)", year_range, str(q_count),
             )
             for item in items:
-                qp_doc   = _get_doc(item.get("qp_path"))
-                q_entry  = item["question"]
+                qp_doc     = _get_doc(item.get("qp_path"))
+                q_entry    = item["question"]
                 item_label = item.get("label", "")
                 if qp_doc:
                     regions = q_entry.get("regions", [])
@@ -227,17 +252,19 @@ def build_topical_booklets(
             qp_path_out = os.path.join(qp_dir, f"{base_name}_QP.pdf")
             qp_dest.save(qp_path_out)
             qp_dest.close()
+            _write_source_map(qp_path_out.replace(".pdf", ".csv"), csv_rows)
 
             # ── MS Booklet ─────────────────────────────────────────────────
-            ms_dest   = fitz.open()
-            has_ms    = False
+            ms_dest      = fitz.open()
+            has_ms       = False
+            ms_csv_rows: list[tuple] = []
             _create_cover_page(
                 ms_dest, "Topical Past Papers", syllabus_name, topic,
                 "Marking Scheme (MS)", year_range, str(q_count),
             )
             for item in items:
-                ms_doc    = _get_doc(item.get("ms_path"))
-                ms_entry  = item.get("ms_entry")
+                ms_doc     = _get_doc(item.get("ms_path"))
+                ms_entry   = item.get("ms_entry")
                 item_label = item.get("label", "")
                 if ms_doc and ms_entry:
                     regions = ms_entry.get("regions", [])
@@ -246,10 +273,17 @@ def build_topical_booklets(
                     added = insert_regions_into_pdf(ms_dest, ms_doc, regions, fallback_tuple, label=item_label)
                     if added:
                         has_ms = True
+                        ms_csv_rows.append((
+                            len(ms_csv_rows) + 1,
+                            item.get("paper_id", ""),
+                            item["question"].get("q_num", 0),
+                            item.get("source_url", ""),
+                        ))
 
             if has_ms:
                 ms_path_out = os.path.join(ms_dir, f"{base_name}_MS.pdf")
                 ms_dest.save(ms_path_out)
+                _write_source_map(ms_path_out.replace(".pdf", ".csv"), ms_csv_rows)
             ms_dest.close()
 
             # ── Merged Booklet ─────────────────────────────────────────────
@@ -277,6 +311,7 @@ def build_topical_booklets(
             merged_path_out = os.path.join(merged_dir, f"{base_name}_Merged.pdf")
             merged_dest.save(merged_path_out)
             merged_dest.close()
+            _write_source_map(merged_path_out.replace(".pdf", ".csv"), csv_rows)
 
         finally:
             # Close all opened source documents
