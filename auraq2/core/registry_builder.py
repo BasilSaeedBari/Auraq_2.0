@@ -66,8 +66,8 @@ SUB_PART_X_FRACTION = 0.28  # sub-part labels like (a), (b)
 
 # Regex patterns
 _RE_Q_NUM   = re.compile(r"^(?:Question\s+)?(\d{1,2})\b", re.IGNORECASE)
-_RE_SUB_ALPHA = re.compile(r"^\(?([a-z])\)?\s*$")          # (a) or a)
-_RE_SUB_ROMAN = re.compile(r"^\(?(i{1,3}|iv|vi{0,3}|ix)\)?\s*$", re.IGNORECASE)
+_RE_SUB_ALPHA = re.compile(r"^\(?([a-z])\)\s*$", re.IGNORECASE)
+_RE_SUB_ROMAN = re.compile(r"^\(?(i{1,3}|iv|vi{0,3}|ix)\)\s*$", re.IGNORECASE)
 _RE_SUB_LABEL = re.compile(r"^\(?([a-z])\)?")               # looser: starts with (a), (b) …
 
 
@@ -104,11 +104,26 @@ def _sorted_blocks(page: fitz.Page) -> list[_Block]:
     """Extract and sort text blocks on a page top→bottom, left→right."""
     raw = page.get_text("blocks")
     out: list[_Block] = []
+    
+    # Unicode ligatures mapping
+    replacements = {
+        "\ufb01": "fi",
+        "\ufb02": "fl",
+        "\ufb00": "ff",
+        "\ufb03": "ffi",
+        "\ufb04": "ffl",
+        "\u2013": "-",
+        "\u2212": "-",
+    }
+    
     for b in raw:
         x0, y0, x1, y1, text, *_ = b
         if not text.strip():
             continue
-        out.append(_Block(page=page.number, y0=y0, y1=y1, x0=x0, x1=x1, text=text.strip()))
+        clean_text = text.strip()
+        for k, v in replacements.items():
+            clean_text = clean_text.replace(k, v)
+        out.append(_Block(page=page.number, y0=y0, y1=y1, x0=x0, x1=x1, text=clean_text))
     out.sort(key=lambda b: (b.y0, b.x0))
     return out
 
@@ -118,6 +133,57 @@ def _last_text_y1(blocks: list[_Block]) -> float:
     if not blocks:
         return 0.0
     return max(b.y1 for b in blocks)
+
+
+def _extract_snippet(blocks: list[_Block], page_width: float) -> str:
+    """
+    Intelligently extract a clean, relevant text snippet for a question.
+    Skips diagram/axis annotations (blocks too far right or very short)
+    and starts the snippet from the actual question body (stem keywords).
+    """
+    STEM_KEYWORDS = {
+        "find", "show", "verify", "solve", "express", "state", "prove", "derive", 
+        "determine", "calculate", "diagram", "curve", "function", "points", "point", 
+        "line", "gradient", "tangent", "normal", "circle", "progression", "expansion", 
+        "integral", "integrate", "differentiate", "derivative", "given that", "graph"
+    }
+
+    # First pass: filter out diagram/plot labels (far-right blocks or very short text)
+    candidate_blocks = []
+    for b in blocks:
+        # Skip blocks too far right (A4 page width is ~595; left-margin is x0 < 90)
+        if b.x0 > page_width * 0.15:
+            continue
+        # Skip very short annotations
+        if len(b.text.strip()) <= 2:
+            continue
+        candidate_blocks.append(b)
+
+    # Second pass: find the index where the actual question stem text begins
+    stem_start = 0
+    for i, b in enumerate(candidate_blocks):
+        lower = b.text.lower()
+        if any(kw in lower for kw in STEM_KEYWORDS):
+            stem_start = i
+            break
+
+    # Third pass: build the snippet from the question stem onward
+    snippet_parts = []
+    total_chars = 0
+    for b in candidate_blocks[stem_start:]:
+        text = b.text.strip()
+        # Clean answer lines (dots, underscores)
+        text = re.sub(r'[._\-=]{4,}', ' ', text)
+        # Collapse spaces
+        text = re.sub(r'\s+', ' ', text).strip()
+        if text:
+            snippet_parts.append(text)
+            total_chars += len(text)
+            if total_chars > 500:
+                break
+
+    return " ".join(snippet_parts)[:1000]
+
 
 
 def _make_regions(
@@ -434,22 +500,7 @@ def _build_qp_registry(
         q_end_page = q_blocks[-1].page if q_blocks else q_page
         q_regions  = _make_regions(doc, q_page, q_y0, q_end_page, q_text_end, y_top, y_bottom)
 
-        snippet = ""
-        first = True
-        for blk in q_blocks[:10]:
-            text = blk.text
-            if first:
-                m = _RE_Q_NUM.match(text)
-                if m:
-                    text = text[m.end():].strip()
-                first = False
-            # Strip answer-space sequences (4 or more repeated dots, underscores, dashes, or equals)
-            text = re.sub(r'[._\-=]{4,}', ' ', text)
-            # Collapse internal whitespace and newlines
-            text = re.sub(r'\s+', ' ', text).strip()
-            if text:
-                snippet += text + " "
-        snippet = snippet.strip()[:1000]
+        snippet = _extract_snippet(q_blocks, doc[q_page].rect.width)
 
         # Use sequential index (qi + 1) instead of the regex-detected q_num.
         # If a false-positive block is picked up (a stray digit from a formula,
