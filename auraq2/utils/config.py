@@ -21,6 +21,7 @@ _DEFAULTS: dict[str, dict[str, str]] = {
         "max_download_workers": "10",
         "max_registry_workers": "4",
         "generate_docx": "no",
+        "docx_dpi": "300",
     },
     "Filters": {
         "remove_blank": "yes",

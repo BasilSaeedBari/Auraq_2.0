@@ -342,12 +342,16 @@ def build_topical_booklets(
     if generate_docx and docx_tasks:
         logger.info(f"Generating DOCX booklets (pages as images) for {len(docx_tasks)} files...")
         from auraq2.core.docx_exporter import pdf_to_docx
+        from auraq2.utils.config import load_config
         import concurrent.futures
+
+        cfg = load_config()
+        dpi = cfg.getint("General", "docx_dpi", fallback=300)
 
         # Use ThreadPoolExecutor to run docx conversions in parallel
         with concurrent.futures.ThreadPoolExecutor(max_workers=min(4, len(docx_tasks))) as executor:
             futures = {
-                executor.submit(pdf_to_docx, pdf_path, docx_path): docx_path
+                executor.submit(pdf_to_docx, pdf_path, docx_path, dpi=dpi): docx_path
                 for pdf_path, docx_path in docx_tasks
             }
             for future in concurrent.futures.as_completed(futures):
