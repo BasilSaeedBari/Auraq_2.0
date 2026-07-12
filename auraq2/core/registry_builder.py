@@ -114,6 +114,8 @@ def _sorted_blocks(page: fitz.Page) -> list[_Block]:
         "\ufb04": "ffl",
         "\u2013": "-",
         "\u2212": "-",
+        "\u0000": "(",
+        "\u0001": ")",
     }
     
     for b in raw:

@@ -34,8 +34,8 @@ Cambridge A-Levels:
           - "Differentiation"
           - "Integration"
         keyword_rules:
-          Quadratics: ["quadratic|4", "discriminant|6", "real roots|5", "no real roots|6", "distinct roots|6", "completed square|6", "completing the square|6", "parabola|5", "vertex|5", "meets the curve at a single point|6", "tangent to the curve|5", "b^2 - 4ac|9", "maximum value|5", "minimum value|5"]
-          Functions: ["domain|5", "range|5", "composite function|6", "inverse function|6", "one-to-one|6", "fg(|6", "gf(|6", "f^{-1}|6", "g^{-1}|6", "transformations?|4", "transformed|4", "y\\s*=\\s*f(|5", "mapping|4", "transformation of graphs|6", "reflect|4", "translate|4", "stretch|4"]
+          Quadratics: ["quadratic|4", "discriminant|6", "real roots|5", "no real roots|6", "distinct roots|6", "completed square|6", "completing the square|6", "parabola|5", "vertex|5", "meets the curve at a single point|6", "tangent to the curve|5", "b^2 - 4ac|9", "maximum value|5", "minimum value|5", "in the form \\(?\\s*x|6", "in the form \\(\\s*\\)|6"]
+          Functions: ["domain|5", "range|5", "composite function|6", "inverse function|6", "one-to-one|6", "fg\\(|6", "gf\\(|6", "f^{-1}|6", "g^{-1}|6", "transformations?|4", "transformed|4", "y\\s*=\\s*f\\(|5", "mapping|4", "transformation of graphs|6", "reflect|4", "translate|4", "stretch|4"]
           Coordinate geometry: ["coordinate geometry|5", "perpendicular bisector|9", "gradient of|3", "midpoint|6", "straight line|4", "passes through|3", "distance between|5", "equation of the line|5", "gradient|3", "y-intercept|4", "x-intercept|4", "perpendicular|4", "parallel|4", "length of a line segment|6"]
           Coordinate geometry of Circles: ["equation of the circle|9", "centre of the circle|9", "radius of the circle|9", "tangent to the circle|6", "x^2\\s*\\+\\s*y^2|6"]
           Circular measure: ["circular measure|5", "sector|9", "arc length|9", "radians?|6", "perimeter of the shaded|6", "area of the shaded|6", "chord|5", "segment|4", "perimeter of the region|6", "area of the region|6", "angle poq|5", "arc AB|6"]
