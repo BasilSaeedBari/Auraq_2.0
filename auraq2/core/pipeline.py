@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import multiprocessing
 import os
+import re
 import json
 import time
 import logging
@@ -288,6 +289,19 @@ def run_pipeline(
     for idx, (pid, reg) in enumerate(qp_registries.items()):
         if not reg.get("questions"):
             continue
+
+        # Enrich QP snippets with corresponding MS answers for high-quality classification
+        ms_pid = pid.replace("_qp_", "_ms_")
+        ms_reg = ms_registries.get(ms_pid)
+        if ms_reg:
+            ms_qs = {mq["q_num"]: mq.get("text_snippet", "") for mq in ms_reg.get("questions", [])}
+            for q in reg.get("questions", []):
+                ms_snip = ms_qs.get(q["q_num"], "")
+                if ms_snip:
+                    ms_clean = re.sub(r'\s+', ' ', ms_snip).strip()
+                    if ms_clean:
+                        q["text_snippet"] = f"{q.get('text_snippet', '')} [MS: {ms_clean}]".strip()
+
         if ai_mode == "heuristics":
             classify_paper_heuristics(reg, topics, kw_rules, h_score)
         elif ai_mode == "batch" and groq_api_key:

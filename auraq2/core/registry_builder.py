@@ -151,8 +151,8 @@ def _extract_snippet(blocks: list[_Block], page_width: float) -> str:
     # First pass: filter out diagram/plot labels (far-right blocks or very short text)
     candidate_blocks = []
     for b in blocks:
-        # Skip blocks too far right (A4 page width is ~595; left-margin is x0 < 90)
-        if b.x0 > page_width * 0.15:
+        # Skip blocks too far right only if they are short (likely diagram annotations)
+        if b.x0 > page_width * 0.15 and len(b.text.strip()) <= 10:
             continue
         # Skip very short annotations
         if len(b.text.strip()) <= 2:
@@ -167,10 +167,19 @@ def _extract_snippet(blocks: list[_Block], page_width: float) -> str:
             stem_start = i
             break
 
-    # Third pass: build the snippet from the question stem onward
+    # Third pass: build the snippet (from stem_start, keeping substantial blocks before stem_start)
+    snippet_blocks = []
+    for i, b in enumerate(candidate_blocks):
+        if i >= stem_start:
+            snippet_blocks.append(b)
+        else:
+            # Keep longer blocks (exponents, math formulas next to the number) even if sorted before the stem
+            if len(b.text.strip()) > 10:
+                snippet_blocks.append(b)
+
     snippet_parts = []
     total_chars = 0
-    for b in candidate_blocks[stem_start:]:
+    for b in snippet_blocks:
         text = b.text.strip()
         # Clean answer lines (dots, underscores)
         text = re.sub(r'[._\-=]{4,}', ' ', text)
@@ -321,9 +330,20 @@ def _get_ms_question_starts(
             m = re.match(r"^(\d+)", clean)
             if m:
                 q_num = int(m.group(1))
-                if q_num in expected_q_nums and q_num not in seen:
-                    seen.add(q_num)
-                    starts.append((q_num, p, vy0))
+                # Skip false-positive mark/score cells (wide blocks with only digits and no letters)
+                has_letters = bool(re.search(r"[a-zA-Z]", clean))
+                if not has_letters and (x1 - x0) >= 50.0:
+                    continue
+
+                if expected_q_nums:
+                    next_idx = len(seen)
+                    if next_idx < len(expected_q_nums) and q_num == expected_q_nums[next_idx]:
+                        seen.add(q_num)
+                        starts.append((q_num, p, vy0))
+                else:
+                    if q_num not in seen:
+                        seen.add(q_num)
+                        starts.append((q_num, p, vy0))
 
     starts.sort(key=lambda x: (x[1], x[2]))
     return starts
@@ -437,8 +457,13 @@ def _build_qp_registry(
                 if blk.y0 < y_top or blk.y1 > ph - y_bottom:
                     continue
                 # Page-specific upper/lower bounds for this question
-                if p_idx == q_page and blk.y0 < q_y0:
-                    continue
+                if p_idx == q_page:
+                    # Allow a small vertical tolerance (15pt) for blocks to the right of the question number
+                    # to catch exponents, fractions, or top parts of formulas.
+                    is_right_of_qnum = blk.x0 > pw * Q_NUM_X_FRACTION
+                    ymin_limit = q_y0 - 15.0 if is_right_of_qnum else q_y0
+                    if blk.y0 < ymin_limit:
+                        continue
                 if p_idx == nxt_page and blk.y0 >= nxt_y0:
                     break
                 q_blocks.append(blk)
