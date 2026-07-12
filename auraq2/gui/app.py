@@ -404,6 +404,14 @@ class AuraqApp:
                        activebackground=COLOR_CARD, activeforeground=COLOR_WHITE,
                        selectcolor=COLOR_BG, font=("Segoe UI", 11, "bold")).pack(anchor="w", pady=(8, 0))
 
+        # Docx toggle
+        cfg = load_config()
+        self._docx_var = tk.BooleanVar(value=cfg.getboolean("General", "generate_docx", fallback=False))
+        tk.Checkbutton(frm, text="Also generate DOCX versions (pages as images)",
+                       variable=self._docx_var, bg=COLOR_CARD, fg=COLOR_WHITE,
+                       activebackground=COLOR_CARD, activeforeground=COLOR_WHITE,
+                       selectcolor=COLOR_BG, font=("Segoe UI", 9)).pack(anchor="w", padx=(20, 0), pady=(4, 0))
+
     def _build_bottom(self, frm: tk.Frame) -> None:
         """Action buttons, progress bar, log console."""
         btn_row = tk.Frame(frm, bg=COLOR_CARD)
@@ -586,6 +594,7 @@ class AuraqApp:
             remove_additional=self._rm_add_var.get(),
             remove_formula=self._rm_form_var.get(),
             generate_topical=self._topical_var.get(),
+            generate_docx=self._docx_var.get(),
             groq_api_key=groq_key,
             ai_mode=self._ai_mode_var.get(),
         )

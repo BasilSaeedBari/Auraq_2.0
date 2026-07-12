@@ -77,6 +77,7 @@ def run_pipeline(
     remove_additional: bool = True,
     remove_formula: bool = False,
     generate_topical: bool = True,
+    generate_docx: bool = False,
     groq_api_key: str = "",
     ai_mode: str = "hybrid",    # "batch", "heuristics", "hybrid"
     max_download_workers: int = 10,
@@ -401,6 +402,7 @@ def run_pipeline(
         start_year=start_year,
         end_year=end_year,
         is_mcq=is_mcq,
+        generate_docx=generate_docx,
     )
 
     _cb("Compiling", len(topics), len(topics))

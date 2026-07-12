@@ -168,6 +168,7 @@ def build_topical_booklets(
     start_year: int,
     end_year: int,
     is_mcq: bool = False,
+    generate_docx: bool = False,
 ) -> None:
     """
     Build topical PDF booklets from a list of question records.
@@ -191,6 +192,8 @@ def build_topical_booklets(
     merged_dir = os.path.join(output_dir, "Topical_Merged")
     for d in (qp_dir, ms_dir, merged_dir):
         os.makedirs(d, exist_ok=True)
+
+    docx_tasks: list[tuple[str, str]] = []
 
     # Group by topic, preserving chronological order
     by_topic: dict[str, list[dict]] = defaultdict(list)
@@ -265,6 +268,7 @@ def build_topical_booklets(
             qp_dest.save(qp_path_out)
             qp_dest.close()
             _write_source_map(qp_path_out.replace(".pdf", ".csv"), csv_rows)
+            docx_tasks.append((qp_path_out, qp_path_out.replace(".pdf", ".docx")))
 
             # ── MS Booklet ─────────────────────────────────────────────────
             ms_dest      = fitz.open()
@@ -296,6 +300,7 @@ def build_topical_booklets(
                 ms_path_out = os.path.join(ms_dir, f"{base_name}_MS.pdf")
                 ms_dest.save(ms_path_out)
                 _write_source_map(ms_path_out.replace(".pdf", ".csv"), ms_csv_rows)
+                docx_tasks.append((ms_path_out, ms_path_out.replace(".pdf", ".docx")))
             ms_dest.close()
 
             # ── Merged Booklet ─────────────────────────────────────────────
@@ -324,6 +329,7 @@ def build_topical_booklets(
             merged_dest.save(merged_path_out)
             merged_dest.close()
             _write_source_map(merged_path_out.replace(".pdf", ".csv"), csv_rows)
+            docx_tasks.append((merged_path_out, merged_path_out.replace(".pdf", ".docx")))
 
         finally:
             # Close all opened source documents
@@ -332,5 +338,23 @@ def build_topical_booklets(
                     doc.close()
                 except Exception:
                     pass
+
+    if generate_docx and docx_tasks:
+        logger.info(f"Generating DOCX booklets (pages as images) for {len(docx_tasks)} files...")
+        from auraq2.core.docx_exporter import pdf_to_docx
+        import concurrent.futures
+
+        # Use ThreadPoolExecutor to run docx conversions in parallel
+        with concurrent.futures.ThreadPoolExecutor(max_workers=min(4, len(docx_tasks))) as executor:
+            futures = {
+                executor.submit(pdf_to_docx, pdf_path, docx_path): docx_path
+                for pdf_path, docx_path in docx_tasks
+            }
+            for future in concurrent.futures.as_completed(futures):
+                docx_path = futures[future]
+                try:
+                    future.result()
+                except Exception as exc:
+                    logger.error(f"Failed to generate {os.path.basename(docx_path)}: {exc}")
 
     logger.info(f"Topical booklet generation complete -> {output_dir}")

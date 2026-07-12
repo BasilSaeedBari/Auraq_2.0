@@ -48,6 +48,7 @@ class PipelineThread(threading.Thread):
         remove_additional: bool,
         remove_formula: bool,
         generate_topical: bool,
+        generate_docx: bool,
         groq_api_key: str,
         ai_mode: str,
     ) -> None:
@@ -66,6 +67,7 @@ class PipelineThread(threading.Thread):
             remove_additional=remove_additional,
             remove_formula=remove_formula,
             generate_topical=generate_topical,
+            generate_docx=generate_docx,
             groq_api_key=groq_api_key,
             ai_mode=ai_mode,
         )

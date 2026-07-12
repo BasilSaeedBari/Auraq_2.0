@@ -59,6 +59,7 @@ def run_cli(args) -> None:
             remove_additional=args.remove_additional,
             remove_formula=args.remove_formula,
             generate_topical=args.topical,
+            generate_docx=args.docx,
             groq_api_key=groq_key,
             ai_mode=args.ai_mode,
             max_download_workers=args.workers_dl,

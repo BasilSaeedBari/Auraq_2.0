@@ -61,6 +61,8 @@ Examples:
                         help="Increase verbosity (-v = DEBUG)")
     parser.add_argument("--save-ai-debug", action="store_true",
                         help="Save AI prompts and responses to disk for debugging")
+    parser.add_argument("--docx", action="store_true",
+                        help="Generate DOCX versions of topical booklets (pages as images)")
 
     return parser.parse_args()
 
