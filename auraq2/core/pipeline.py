@@ -115,6 +115,16 @@ def run_pipeline(
     ms_top    = int(config.get("Clipping", "ms_top_margin",    fallback="50"))
     ms_bot    = int(config.get("Clipping", "ms_bottom_margin", fallback="40"))
     groq_model = os.environ.get("GROQ_MODEL") or config.get("General", "groq_model", fallback="llama-3.3-70b-versatile")
+    # Build ordered fallback model list.  The primary model is always first;
+    # additional fallbacks come from the config key "groq_model_fallbacks".
+    _fallback_str = config.get(
+        "General", "groq_model_fallbacks",
+        fallback="llama-3.3-70b-versatile,llama-4-scout,openai/gpt-oss-20b"
+    )
+    groq_models: list[str] = [groq_model] + [
+        m.strip() for m in _fallback_str.split(",")
+        if m.strip() and m.strip() != groq_model
+    ]
 
     # Inject tunable constants into the classifier at runtime
     import auraq2.core.ai_classifier as _clf
@@ -274,11 +284,13 @@ def run_pipeline(
         elif ai_mode == "batch" and groq_api_key:
             classify_paper_batch(reg, topics, syllabus_name, groq_api_key,
                                  groq_model, kw_rules, conf_threshold, h_score,
-                                 save_ai_debug, os.path.join(base_dir, "ai_debug"))
+                                 save_ai_debug, os.path.join(base_dir, "ai_debug"),
+                                 groq_models)
         else:  # hybrid
             classify_paper_batch(reg, topics, syllabus_name, groq_api_key or "",
                                  groq_model, kw_rules, conf_threshold, h_score,
-                                 save_ai_debug, os.path.join(base_dir, "ai_debug"))
+                                 save_ai_debug, os.path.join(base_dir, "ai_debug"),
+                                 groq_models)
         # Persist updated registry (now has topic + confidence)
         for spec in qp_specs:
             if paper_id_from_spec(spec) == pid:

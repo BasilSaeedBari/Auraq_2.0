@@ -92,63 +92,90 @@ def _build_batch_prompt(
 # --------------------------------------------------------------------------- #
 # Groq API call                                                                  #
 # --------------------------------------------------------------------------- #
-def _call_groq_batch(prompt: str, groq_key: str, model: str, max_retries: int = 3) -> str | None:
+def _call_groq_batch(
+    prompt: str,
+    groq_key: str,
+    models: list[str],
+    max_retries_per_model: int = 2,
+) -> str | None:
     """
-    Send a batch classification request to Groq with exponential backoff for retries.
-    Returns the raw response string or None on failure.
+    Send a batch classification request to Groq, cycling through *models* on
+    rate-limit errors (HTTP 429).  Within each model, retries are attempted up
+    to *max_retries_per_model* times for transient errors (5xx, timeouts).
+
+    Returns the raw response string on the first success, or None if every
+    model / attempt combination fails.
     """
     headers = {
         "Authorization": f"Bearer {groq_key}",
         "Content-Type":  "application/json",
     }
-    payload = {
-        "model":    model,
-        "messages": [
-            {
-                "role":    "system",
-                "content": (
-                    "You are a JSON-only classifier. Never write prose. "
-                    "Your output must be a single JSON object with exactly the key 'classifications'. "
-                    "Do not wrap it in ```json or any other text."
-                ),
-            },
-            {"role": "user", "content": prompt},
-        ],
-        "temperature":     0.05,   # Very low temp for deterministic, factual output
-        "response_format": {"type": "json_object"},
-        "max_completion_tokens": 4096,
-        "top_p": 1.0,
-    }
 
-    for attempt in range(max_retries):
-        delay = REQUEST_DELAY * (2 ** attempt)
-        try:
-            time.sleep(delay)
-            r = requests.post(GROQ_API_URL, headers=headers, json=payload, timeout=30)
-            if r.status_code == 200:
-                raw = r.json()["choices"][0]["message"]["content"].strip()
-                logger.debug(f"Groq raw response: {raw[:500]}")
-                return raw
-            
-            if r.status_code == 429:
+    for model in models:
+        for attempt in range(max_retries_per_model):
+            delay = REQUEST_DELAY * (2 ** attempt)
+            payload = {
+                "model":    model,
+                "messages": [
+                    {
+                        "role":    "system",
+                        "content": (
+                            "You are a JSON-only classifier. Never write prose. "
+                            "Your output must be a single JSON object with exactly the key 'classifications'. "
+                            "Do not wrap it in ```json or any other text."
+                        ),
+                    },
+                    {"role": "user", "content": prompt},
+                ],
+                "temperature":     0.05,
+                "response_format": {"type": "json_object"},
+                "max_completion_tokens": 4096,
+                "top_p": 1.0,
+            }
+            try:
+                time.sleep(delay)
+                r = requests.post(GROQ_API_URL, headers=headers, json=payload, timeout=30)
+
+                if r.status_code == 200:
+                    raw = r.json()["choices"][0]["message"]["content"].strip()
+                    logger.debug(f"Groq raw response: {raw[:500]}")
+                    return raw
+
+                if r.status_code == 429:
+                    retry_after = r.headers.get("Retry-After", "")
+                    wait_hint = f" (Retry-After: {retry_after}s)" if retry_after else ""
+                    logger.warning(
+                        f"Groq rate limit (429) on model '{model}'{wait_hint}. "
+                        "Moving to next fallback model."
+                    )
+                    break   # skip remaining retries; try next model
+
+                if r.status_code >= 500:
+                    logger.warning(
+                        f"Groq server error ({r.status_code}) on model '{model}', "
+                        f"attempt {attempt + 1}/{max_retries_per_model}. Retrying..."
+                    )
+                    continue   # retry same model
+
+                # Other non-retryable error (e.g. 400 bad request)
                 logger.warning(
-                    f"Groq rate limit hit (429). "
-                    f"Retrying in {delay * 2:.1f}s (attempt {attempt + 1}/{max_retries})..."
+                    f"Groq returned HTTP {r.status_code} for model '{model}': "
+                    f"{r.text[:200]}"
                 )
-                continue
-            elif r.status_code >= 500:
-                logger.warning(
-                    f"Groq server error ({r.status_code}). "
-                    f"Retrying in {delay * 2:.1f}s (attempt {attempt + 1}/{max_retries})..."
+                break   # no point retrying the same model
+
+            except Exception as exc:
+                logger.error(
+                    f"Groq API error on model '{model}', "
+                    f"attempt {attempt + 1}/{max_retries_per_model}: {exc}"
                 )
-                continue
-            
-            logger.warning(f"Groq returned HTTP {r.status_code}: {r.text[:200]}")
-            break
-        except Exception as exc:
-            logger.error(f"Groq API error on attempt {attempt + 1}: {exc}")
-            if attempt < max_retries - 1:
-                continue
+                if attempt < max_retries_per_model - 1:
+                    continue
+
+        # If we exhausted retries for this model, log and move to the next
+        logger.warning(f"Model '{model}' exhausted — trying next fallback model (if any).")
+
+    logger.error("All Groq models failed. Falling back to heuristics.")
     return None
 
 
@@ -408,12 +435,13 @@ def classify_paper_batch(
     topics: list[str],
     syllabus_name: str,
     groq_key: str,
-    groq_model: str,
+    groq_model: str,                        # primary / single model (legacy param)
     keyword_rules: dict | None = None,
-    confidence_threshold: float = 0.80,   # raised from 0.70
+    confidence_threshold: float = 0.80,
     heuristic_fallback_score: int = 6,
     save_ai_debug: bool = False,
     debug_dir: str = "",
+    groq_models: list[str] | None = None,   # ordered fallback list; overrides groq_model
 ) -> None:
     """
     Classify all questions in *registry* using Groq (batch) + heuristic.
@@ -457,8 +485,11 @@ def classify_paper_batch(
     # ── Step 2: Groq batch call ──────────────────────────────────────────────
     ai_results: dict[int, tuple[str, float]] = {}
     if groq_key:
+        # Build the model list: explicit list takes priority; fall back to single groq_model
+        models_to_try: list[str] = groq_models if groq_models else [groq_model]
+
         prompt = _build_batch_prompt(questions, topics, syllabus_name, kr)
-        raw    = _call_groq_batch(prompt, groq_key, groq_model)
+        raw    = _call_groq_batch(prompt, groq_key, models_to_try)
         
         # Save AI debug info if requested
         if save_ai_debug and debug_dir:

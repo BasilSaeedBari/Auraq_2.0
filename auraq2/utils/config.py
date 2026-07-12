@@ -17,6 +17,7 @@ _DEFAULTS: dict[str, dict[str, str]] = {
         "sources_order": "papacambridge,bestexamhelp,dynamicpapers",
         "groq_api_key": "",
         "groq_model": "llama-3.3-70b-versatile",
+        "groq_model_fallbacks": "llama-4-scout,openai/gpt-oss-20b,qwen/qwen-3-32b",
         "max_download_workers": "10",
         "max_registry_workers": "4",
     },

@@ -429,8 +429,20 @@ def _build_qp_registry(
             snippet += text + " "
         snippet = snippet.strip()[:1000]
 
+        # Use sequential index (qi + 1) instead of the regex-detected q_num.
+        # If a false-positive block is picked up (a stray digit from a formula,
+        # page number, etc.), the detected q_num may be wrong, causing all
+        # subsequent questions to be misaligned by one.  Sequential numbering
+        # guarantees the registry always uses 1, 2, 3 … in page order, which
+        # matches the MS table order exactly.
+        sequential_q_num = qi + 1
+        if sequential_q_num != q_num:
+            logger.debug(
+                f"QP {paper_id}: reindexing detected Q{q_num} → Q{sequential_q_num} "
+                f"(page {q_page}, y={q_y0:.1f})"
+            )
         questions_out.append({
-            "q_num":      q_num,
+            "q_num":      sequential_q_num,
             "text_snippet": snippet,
             "start_page": q_page,
             "end_page":   q_end_page,
