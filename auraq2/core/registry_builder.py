@@ -426,7 +426,12 @@ def _build_qp_registry(
                 if m:
                     text = text[m.end():].strip()
                 first = False
-            snippet += text + " "
+            # Strip answer-space sequences (4 or more repeated dots, underscores, dashes, or equals)
+            text = re.sub(r'[._\-=]{4,}', ' ', text)
+            # Collapse internal whitespace and newlines
+            text = re.sub(r'\s+', ' ', text).strip()
+            if text:
+                snippet += text + " "
         snippet = snippet.strip()[:1000]
 
         # Use sequential index (qi + 1) instead of the regex-detected q_num.
