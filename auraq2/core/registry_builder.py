@@ -293,7 +293,16 @@ def _get_ms_question_starts(
         
         # Check for generic/notes page keywords
         text_all = page.get_text("text").lower()
-        if any(kw in text_all for kw in ["generic marking principles", "mark scheme notes", "types of mark", "guide to marking"]):
+        generic_keywords = [
+            "generic marking principles", 
+            "marking principles", 
+            "mark scheme notes", 
+            "types of mark", 
+            "guide to marking",
+            "annotations guidance",
+            "abbreviations"
+        ]
+        if any(kw in text_all for kw in generic_keywords):
             continue
 
         header_y1 = _get_ms_header_y1(page)
@@ -330,9 +339,9 @@ def _get_ms_question_starts(
             m = re.match(r"^(\d+)", clean)
             if m:
                 q_num = int(m.group(1))
-                # Skip false-positive mark/score cells (wide blocks with only digits and no letters)
-                has_letters = bool(re.search(r"[a-zA-Z]", clean))
-                if not has_letters and (x1 - x0) >= 50.0:
+                # Skip false-positive mark/score cells (wide blocks with only digits/spaces and no letters or operators)
+                has_content = bool(re.search(r"[a-zA-Z()\[\]{}+\-*/=]", clean))
+                if not has_content and (x1 - x0) >= 50.0:
                     continue
 
                 if expected_q_nums:
@@ -536,7 +545,7 @@ def _build_qp_registry(
         sequential_q_num = qi + 1
         if sequential_q_num != q_num:
             logger.debug(
-                f"QP {paper_id}: reindexing detected Q{q_num} → Q{sequential_q_num} "
+                f"QP {paper_id}: reindexing detected Q{q_num} -> Q{sequential_q_num} "
                 f"(page {q_page}, y={q_y0:.1f})"
             )
         questions_out.append({
