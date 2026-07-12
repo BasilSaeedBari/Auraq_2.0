@@ -272,7 +272,7 @@ def _parse_batch_response(
 _EXCLUSIONS = {
     r'\bsin\b': ['since', 'sincere', 'single', 'singing', 'sing'],
     r'\bcos\b': ['cost', 'cosmic', 'cosmopolitan', 'costs', 'costing'],
-    r'\btan\b': ['tangible', 'tangle', 'tank', 'tanks', 'tangent'],
+    r'\btan\b': ['tangible', 'tangle', 'tank', 'tanks'],
 }
 
 

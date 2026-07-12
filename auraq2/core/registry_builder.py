@@ -125,6 +125,8 @@ def _sorted_blocks(page: fitz.Page) -> list[_Block]:
         clean_text = text.strip()
         for k, v in replacements.items():
             clean_text = clean_text.replace(k, v)
+        # Strip control characters (ASCII 0-8, 11-31, 127-159) to prevent encoding/regex issues
+        clean_text = re.sub(r'[\x00-\x08\x0b-\x1f\x7f-\x9f]', '', clean_text)
         out.append(_Block(page=page.number, y0=y0, y1=y1, x0=x0, x1=x1, text=clean_text))
     out.sort(key=lambda b: (b.y0, b.x0))
     return out
@@ -190,10 +192,10 @@ def _extract_snippet(blocks: list[_Block], page_width: float) -> str:
         if text:
             snippet_parts.append(text)
             total_chars += len(text)
-            if total_chars > 500:
+            if total_chars > 1200:
                 break
 
-    return " ".join(snippet_parts)[:1000]
+    return " ".join(snippet_parts)[:1200]
 
 
 
