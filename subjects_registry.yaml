@@ -34,17 +34,17 @@ Cambridge A-Levels:
           - "Differentiation"
           - "Integration"
         keyword_rules:
-          Quadratics: ["quadratic", "discriminant", "real roots", "no real roots", "distinct roots", "completed square", "completing the square", "parabola", "vertex", "meets the curve at a single point", "tangent to the curve"]
-          Functions: ["domain", "range", "composite", "composite function", "inverse function", "one-to-one", "fg\\(x\\)", "gf\\(x\\)", "f\\^-1", "g\\^-1", "transformations?", "transformed", "graph of y\\s*=\\s*f\\(x\\)", "mapping", "transformation of graphs"]
-          Coordinate geometry: ["coordinate geometry", "perpendicular bisector", "gradient of", "midpoint", "straight line", "passes through", "distance between", "equation of the line", "gradient", "intercept", "y-intercept", "x-intercept"]
-          Coordinate geometry of Circles: ["equation of the circle", "centre of the circle", "radius of the circle", "tangent to the circle"]
-          Circular measure: ["circular measure", "sector", "arc length", "radians?", "perimeter of the shaded", "area of the shaded", "chord", "segment", "perimeter of the region", "area of the region", "angle poq"]
-          Trigonometry: ["trigonometric", "prove the identity", "solve the equation for", "sin", "cos", "tan", "cosec", "sec", "cot", "trigonometry", "sine", "cosine", "tangent", "sin x", "cos x", "tan x", "sin \\theta", "cos \\theta", "tan \\theta"]
-          AP: ["arithmetic progression", "sum of the first", "common difference", "arithmetic series"]
-          GP: ["geometric progression", "sum to infinity", "common ratio", "geometric series"]
-          Binomial: ["binomial expansion", "coefficient of", "term independent of", "expansion of", "binomial theorem"]
-          Differentiation: ["differentiation", "derivative", "stationary point", "increasing function", "decreasing function", "rate of change", "maximum point", "minimum point", "tangents?", "normals?", "d/dx", "first derivative", "second derivative"]
-          Integration: ["integration", "integrate", "area of the region", "bounded by the curve", "volume of revolution", "definite integral", "dy/dx", "find the equation of the curve", "bounded by the y-axis", "bounded by the x-axis"]
+          Quadratics: ["quadratic|4", "discriminant|6", "real roots|5", "no real roots|6", "distinct roots|6", "completed square|6", "completing the square|6", "parabola|5", "vertex|5", "meets the curve at a single point|6", "tangent to the curve|5", "b^2 - 4ac|9", "maximum value|5", "minimum value|5"]
+          Functions: ["domain|5", "range|5", "composite function|6", "inverse function|6", "one-to-one|6", "fg(|6", "gf(|6", "f^{-1}|6", "g^{-1}|6", "transformations?|4", "transformed|4", "y\\s*=\\s*f(|5", "mapping|4", "transformation of graphs|6", "reflect|4", "translate|4", "stretch|4"]
+          Coordinate geometry: ["coordinate geometry|5", "perpendicular bisector|9", "gradient of|3", "midpoint|6", "straight line|4", "passes through|3", "distance between|5", "equation of the line|5", "gradient|3", "y-intercept|4", "x-intercept|4", "perpendicular|4", "parallel|4", "length of a line segment|6"]
+          Coordinate geometry of Circles: ["equation of the circle|9", "centre of the circle|9", "radius of the circle|9", "tangent to the circle|6", "x^2\\s*\\+\\s*y^2|6"]
+          Circular measure: ["circular measure|5", "sector|9", "arc length|9", "radians?|6", "perimeter of the shaded|6", "area of the shaded|6", "chord|5", "segment|4", "perimeter of the region|6", "area of the region|6", "angle poq|5", "arc AB|6"]
+          Trigonometry: ["trigonometric|5", "prove the identity|9", "solve the equation|5", "sin|3", "cos|3", "tan|3", "cosec|9", "sec|9", "cot|9", "sine|3", "cosine|3", "tangent|3", "sin \\theta|5", "cos \\theta|5", "tan \\theta|5", "double angle|6"]
+          AP: ["arithmetic progression|9", "sum of the first|5", "common difference|9", "arithmetic series|6", "first term of an arithmetic|9"]
+          GP: ["geometric progression|9", "sum to infinity|9", "common ratio|9", "geometric series|6", "first term of a geometric|9"]
+          Binomial: ["binomial expansion|9", "coefficient of|6", "term independent of|9", "expansion of|5", "binomial theorem|9", "ascending powers|5", "descending powers|5"]
+          Differentiation: ["differentiation|5", "derivative|6", "stationary point|9", "increasing function|6", "decreasing function|6", "rate of change|9", "maximum point|6", "minimum point|6", "tangents?|4", "normals?|4", "d/dx|9", "dy/dx|9", "d2y/dx2|9", "first derivative|6", "second derivative|6", "turning point|6", "gradient of the curve|6", "differentiate|5", "rate of increase|6", "rate of decrease|6"]
+          Integration: ["integration|5", "integrate|6", "area of the region|6", "bounded by the curve|6", "volume of revolution|9", "definite integral|6", "find the equation of the curve|6", "bounded by the y-axis|5", "bounded by the x-axis|5", "\u222b|9", "dx|3", "dy|3"]
       "2":
         name: "Pure Mathematics 2"
         topics:
@@ -79,20 +79,20 @@ Cambridge A-Levels:
           - "Complex numbers"
           - "Exponential functions"
         keyword_rules:
-          Algebra: ["algebra", "partial fractions", "quotient", "remainder", "factor theorem", "polynomial", "divided by", "remainder theorem"]
-          polynomials: ["polynomial", "quotient", "remainder", "factor theorem", "remainder theorem", "divided by"]
-          modulus function: ["modulus", "solve the inequality", "\\|.*\\|", "modulus function"]
-          partial fractions: ["partial fractions"]
-          binomial expansion: ["binomial expansion", "coefficient of", "expansion of"]
-          Logarithmic functions: ["logarithm", "ln\\s+", "solve for x using logarithms"]
-          Trigonometry: ["trigonometric", "solve the equation", "sin", "cos", "tan", "sec", "cosec", "cot", "compound angle", "double angle"]
-          Differentiation: ["derivative", "stationary point", "rate of change", "differentiation", "implicit", "parametric"]
-          Integration: ['integration', 'integrate', 'definite integral', 'substitution', 'by parts', 'volume of revolution', 'area of the region', '∫']
-          Numerical solution of equations: ["numerical solution", "iteration", "iterative formula", "converges", "change of sign", "iterative method"]
-          Vectors: ["vector", "line l", "plane", "position vector", "perpendicular lines", "parallel planes", "direction vector", "angle between the lines"]
-          Differential equations: ["differential equation", "variables separable", "solve the differential equation", "rate of increase", "proportional to"]
-          Complex numbers: ["complex number", "real and imaginary parts", "modulus", "argument", "arg\\(", "i\\^2\\s*=\\s*-1", "conjugate", "argand diagram"]
-          Exponential functions: ["exponential", "e\\^x", "e\\^-x"]
+          Algebra: ["algebra|3", "partial fractions|9", "quotient|5", "remainder|5", "factor theorem|9", "polynomial|4", "divided by|4", "remainder theorem|9"]
+          polynomials: ["polynomial|5", "quotient|5", "remainder|5", "factor theorem|9", "remainder theorem|9", "divided by|4", "factorise completely|6", "cubic|5"]
+          modulus function: ["modulus|6", "solve the inequality|5", "\\|.*\\||6", "modulus function|9"]
+          partial fractions: ["partial fractions|9", "express in partial fractions|9"]
+          binomial expansion: ["binomial expansion|9", "coefficient of|6", "expansion of|5", "ascending powers|5", "binomial theorem|9"]
+          Logarithmic functions: ["logarithm|6", "ln\\s+|6", "solve for x using logarithms|9", "natural logarithm|6", "laws of logarithms|9"]
+          Trigonometry: ["trigonometric|5", "solve the equation|5", "sin|3", "cos|3", "tan|3", "sec|6", "cosec|6", "cot|6", "compound angle|9", "double angle|9", "R sin|6", "R cos|6", "sin 2\\theta|6", "cos 2\\theta|6"]
+          Differentiation: ["derivative|6", "stationary point|9", "rate of change|6", "differentiation|5", "implicit differentiation|9", "parametric equation|9", "d/dx|9", "dy/dx|9", "parametric|6", "implicit|6"]
+          Integration: ["integration|5", "integrate|6", "definite integral|6", "integration by substitution|9", "integration by parts|9", "by parts|6", "volume of revolution|9", "area of the region|6", "\u222b|9", "substitution|4"]
+          Numerical solution of equations: ["numerical solution|9", "iteration|9", "iterative formula|9", "converges|6", "change of sign|6", "iterative method|9", "sequence of values|5"]
+          Vectors: ["vector|9", "line l|6", "plane|9", "position vector|9", "perpendicular lines|6", "parallel planes|6", "direction vector|9", "angle between the lines|6", "intersection of the lines|5"]
+          Differential equations: ["differential equation|9", "variables separable|9", "solve the differential equation|9", "rate of increase|6", "proportional to|5", "rate of decrease|6"]
+          Complex numbers: ["complex number|9", "real and imaginary parts|9", "modulus|6", "argument|6", "arg\\(|9", "i^2\\s*=\\s*-1|9", "conjugate|6", "argand diagram|9"]
+          Exponential functions: ["exponential|6", "e^x|5", "e^{-x}|5", "exponential function|9"]
       "4":
         name: "Mechanics"
         topics:
