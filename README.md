@@ -173,3 +173,18 @@ text_end_padding = 8        ; Padding added after the detected question end
 batch_confidence_threshold = 0.80   ; Below this, heuristic checks override the AI
 strong_ai_threshold = 0.90          ; Above this, the AI classification is unconditionally trusted
 ```
+
+---
+
+## 📜 Attributions & License
+
+### Resources & Content Disclaimer
+*   **Cambridge Assessment International Education (CAIE):** All past examination papers, syllabi, schemes of work, and marking schemes are the intellectual property and copyright of CAIE/UCLES. This tool is intended solely for educational prep purposes.
+*   **Content Hosting Mirrors:** Special thanks to `PapaCambridge`, `BestExamHelp`, and `DynamicPapers` for hosting public archives of past paper assets.
+
+### Open-Source Inspiration
+*   **CAIE Downloader:** The threaded parallel download orchestration architecture in this project was inspired by and adapted from the open-source [caiedownloader](https://github.com/itsgeagle/caiedownloader) project by `itsgeagle`.
+
+### License
+Auraq 2.0 is licensed under the **GNU Affero General Public License v3.0 (AGPL-3.0)**. A copy of the license is included in the [LICENSE](file:///d:/NextCloud/Documents/Projects/Auraq_2.0/LICENSE) file in the root of the project.
+
