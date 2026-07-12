@@ -61,7 +61,7 @@ logger = get_logger()
 TEXT_PAD = 8.0
 
 # Maximum fraction of page width for a question-number block to occupy from the left.
-Q_NUM_X_FRACTION  = 0.10   # question numbers
+Q_NUM_X_FRACTION  = 0.12   # question numbers
 SUB_PART_X_FRACTION = 0.28  # sub-part labels like (a), (b)
 
 # Regex patterns
@@ -292,7 +292,24 @@ def _build_qp_registry(
     q_starts: list[tuple[int, int, float]] = []   # (q_num, page, y0)
     seen_q: set[int] = set()
 
-    for p_idx in range(1, len(doc)):  # Skip cover page (page 0)
+    # Dynamically skip cover page (page 0) only if it contains cover-page text indicators.
+    # If the cover page was already removed by filters, the loop correctly starts at page 0.
+    start_p = 0
+    if len(doc) > 0:
+        p0_text = doc[0].get_text().lower()
+        cover_keywords = [
+            "read these instructions",
+            "instructions first",
+            "dark blue or black pen",
+            "do not use staples",
+            "write your name",
+            "candidate number",
+            "index number",
+        ]
+        if any(kw in p0_text for kw in cover_keywords):
+            start_p = 1
+
+    for p_idx in range(start_p, len(doc)):
         page = doc[p_idx]
         pw   = page.rect.width
         ph   = page.rect.height
@@ -493,8 +510,28 @@ def _build_ms_registry(
 
     all_q_nums = expected_q_nums or list(range(1, 30))
 
+    # Dynamically skip cover page (page 0) only if it contains cover-page text indicators.
+    start_p = 0
+    if len(doc) > 0:
+        p0_text = doc[0].get_text().lower()
+        cover_keywords = [
+            "read these instructions",
+            "instructions first",
+            "dark blue or black pen",
+            "do not use staples",
+            "write your name",
+            "candidate number",
+            "index number",
+            "published as an aid to teachers",
+            "generic marking principle",
+            "rules of marking",
+            "generic marking principles",
+        ]
+        if any(kw in p0_text for kw in cover_keywords):
+            start_p = 1
+
     ms_starts = _get_ms_question_starts(
-        doc, 1, len(doc) - 1, all_q_nums, y_bottom  # Skip cover page (page 0)
+        doc, start_p, len(doc) - 1, all_q_nums, y_bottom
     )
 
     questions_out: list[dict] = []
