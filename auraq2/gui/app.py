@@ -79,7 +79,7 @@ class PreferencesWindow(tk.Toplevel):
     def __init__(self, parent: tk.Widget) -> None:
         super().__init__(parent, bg=COLOR_BG)
         self.title("Preferences — Auraq 2.0")
-        self.geometry("560x520")
+        self.geometry("560x590")
         self.resizable(False, False)
         self.transient(parent)
         self.grab_set()
@@ -139,13 +139,33 @@ class PreferencesWindow(tk.Toplevel):
         model_cb = ttk.Combobox(frm, textvariable=self._model_var, values=model_options, state="readonly", font=("Segoe UI", 10))
         model_cb.grid(row=6, column=0, columnspan=2, sticky="ew", pady=(0, 14))
 
-        _lbl("Sources Priority (comma-separated):", 7)
-        self._sources_var = tk.StringVar(value=self._config.get("General", "sources_order", fallback=""))
-        _entry(8, self._sources_var)
+        # Fallback models (editable comma-separated list)
+        _lbl("Fallback Models (comma-separated, tried in order on rate-limit):", 7)
+        self._fallback_var = tk.StringVar(
+            value=self._config.get(
+                "General", "groq_model_fallbacks",
+                fallback="llama-4-scout,openai/gpt-oss-20b,qwen/qwen-3-32b"
+            )
+        )
+        fallback_entry = tk.Entry(
+            frm, textvariable=self._fallback_var,
+            bg=COLOR_CARD, fg=COLOR_WHITE,
+            bd=0, relief="flat", font=("Segoe UI", 9),
+        )
+        fallback_entry.grid(row=8, column=0, columnspan=2, sticky="ew", pady=(0, 4), ipady=4)
+        tk.Label(
+            frm,
+            text="e.g.  llama-4-scout, openai/gpt-oss-20b, qwen/qwen-3-32b",
+            bg=COLOR_BG, fg="#9d8fb0", font=("Segoe UI", 8),
+        ).grid(row=9, column=0, columnspan=2, sticky="w", pady=(0, 12))
 
-        # Row 9: AI Thresholds Row
+        _lbl("Sources Priority (comma-separated):", 10)
+        self._sources_var = tk.StringVar(value=self._config.get("General", "sources_order", fallback=""))
+        _entry(11, self._sources_var)
+
+        # Row 12: AI Thresholds Row
         thresh_frm = tk.Frame(frm, bg=COLOR_BG)
-        thresh_frm.grid(row=9, column=0, columnspan=2, sticky="ew", pady=(0, 18))
+        thresh_frm.grid(row=12, column=0, columnspan=2, sticky="ew", pady=(0, 18))
         thresh_frm.columnconfigure(0, weight=1)
         thresh_frm.columnconfigure(1, weight=1)
         thresh_frm.columnconfigure(2, weight=1)
@@ -178,7 +198,7 @@ class PreferencesWindow(tk.Toplevel):
                  bd=0, relief="flat", font=("Segoe UI", 10), width=10).pack(fill="x", ipady=4)
 
         btn_row = tk.Frame(frm, bg=COLOR_BG)
-        btn_row.grid(row=10, column=0, columnspan=2, sticky="e")
+        btn_row.grid(row=13, column=0, columnspan=2, sticky="e")
         StyledButton(btn_row, text="Cancel",          command=self.destroy,      is_primary=False).pack(side="left", padx=8)
         StyledButton(btn_row, text="Save Preferences", command=self._save, is_primary=True).pack(side="right")
 
@@ -202,6 +222,7 @@ class PreferencesWindow(tk.Toplevel):
             sources=self._sources_var.get(),
             groq_api_key=self._groq_var.get(),
             groq_model=self._model_var.get(),
+            groq_model_fallbacks=self._fallback_var.get(),
             remove_blank=cfg.getboolean("Filters", "remove_blank", fallback=True),
             remove_additional=cfg.getboolean("Filters", "remove_additional", fallback=True),
             remove_formula=cfg.getboolean("Filters", "remove_formula", fallback=False),

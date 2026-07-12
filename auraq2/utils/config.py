@@ -87,6 +87,7 @@ def save_config(
     remove_blank: bool,
     remove_additional: bool,
     remove_formula: bool,
+    groq_model_fallbacks: str = "llama-4-scout,openai/gpt-oss-20b,qwen/qwen-3-32b",
     ai_mode: str = "hybrid",
     confidence_threshold: float = 0.80,
     heuristic_fallback_score: int = 6,
@@ -100,6 +101,7 @@ def save_config(
     config["General"]["sources_order"] = sources
     config["General"]["groq_api_key"] = groq_api_key
     config["General"]["groq_model"] = groq_model
+    config["General"]["groq_model_fallbacks"] = groq_model_fallbacks
 
     config["Filters"] = {
         "remove_blank": "yes" if remove_blank else "no",
