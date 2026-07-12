@@ -59,6 +59,8 @@ logger = get_logger()
 # ── Configurable constants ───────────────────────────────────────────────────
 # Added to the y1 of the last text block to give a small buffer below the text.
 TEXT_PAD = 8.0
+BREAK_TOLERANCE = 10.0
+TRIM_MARGIN = 2.0
 
 # Maximum fraction of page width for a question-number block to occupy from the left.
 Q_NUM_X_FRACTION  = 0.12   # question numbers
@@ -477,9 +479,25 @@ def _build_qp_registry(
                     ymin_limit = q_y0 - 15.0 if is_right_of_qnum else q_y0
                     if blk.y0 < ymin_limit:
                         continue
-                if p_idx == nxt_page and blk.y0 >= nxt_y0:
-                    break
+                if p_idx == nxt_page:
+                    if blk.y0 >= nxt_y0:
+                        break
+                    if blk.y0 >= nxt_y0 - BREAK_TOLERANCE and _RE_Q_NUM.match(blk.text):
+                        break
                 q_blocks.append(blk)
+
+        # Post-collection trimming to ensure no blocks from the next question are included
+        if qi + 1 < len(q_starts):
+            _, nxt_page, nxt_y0 = q_starts[qi + 1]
+            q_blocks = [
+                b for b in q_blocks
+                if b.page < nxt_page or (b.page == nxt_page and b.y0 < nxt_y0 - TRIM_MARGIN)
+            ]
+            # Also remove any block on nxt_page matching _RE_Q_NUM starting at/after nxt_y0 - 15.0
+            q_blocks = [
+                b for b in q_blocks
+                if not (b.page == nxt_page and _RE_Q_NUM.match(b.text) and b.y0 >= nxt_y0 - 15.0)
+            ]
 
         # --- Phase 3: detect sub-parts within this question ------------------
         sub_starts: list[tuple[str, int, float]] = []  # (part_id, page, y0)
@@ -517,11 +535,22 @@ def _build_qp_registry(
             sp_blocks = [
                 b for b in q_blocks
                 if (b.page > sp_page or (b.page == sp_page and b.y0 >= sp_y0))
-                and (b.page < nxt_sp_page or (b.page == nxt_sp_page and b.y0 < nxt_sp_y0))
+                and (b.page < nxt_sp_page or (b.page == nxt_sp_page and b.y0 < nxt_sp_y0 - TRIM_MARGIN))
+            ]
+            # Remove next sub-part label indicator block
+            sp_blocks = [
+                b for b in sp_blocks
+                if not (b.page == nxt_sp_page and b.y0 >= nxt_sp_y0 - 5.0 and (
+                    _RE_SUB_ALPHA.match(b.text) or _RE_SUB_ROMAN.match(b.text) or _RE_SUB_LABEL.match(b.text)
+                ))
             ]
 
-            sp_text_end = _last_text_y1(sp_blocks)
             sp_end_page = sp_blocks[-1].page if sp_blocks else sp_page
+            sp_last_page_blocks = [b for b in sp_blocks if b.page == sp_end_page]
+            sp_text_end = _last_text_y1(sp_last_page_blocks) if sp_last_page_blocks else sp_y0
+            
+            if nxt_sp_page == sp_end_page:
+                sp_text_end = min(sp_text_end, nxt_sp_y0 - TEXT_PAD - 2.0)
 
             sub_parts_out.append({
                 "part_id":    part_id,
@@ -534,8 +563,16 @@ def _build_qp_registry(
             })
 
         # Overall question text end
-        q_text_end = _last_text_y1(q_blocks)
         q_end_page = q_blocks[-1].page if q_blocks else q_page
+        last_page_blocks = [b for b in q_blocks if b.page == q_end_page]
+        q_text_end = _last_text_y1(last_page_blocks) if last_page_blocks else q_y0
+        
+        # Capping safety net
+        if qi + 1 < len(q_starts):
+            _, nxt_page, nxt_y0 = q_starts[qi + 1]
+            if nxt_page == q_end_page:
+                q_text_end = min(q_text_end, nxt_y0 - TEXT_PAD - 2.0)
+
         q_regions  = _make_regions(doc, q_page, q_y0, q_end_page, q_text_end, y_top, y_bottom)
 
         snippet = _extract_snippet(q_blocks, doc[q_page].rect.width)
@@ -647,12 +684,30 @@ def _build_ms_registry(
             for blk in _sorted_blocks(pg):
                 if p_idx == q_page and blk.y0 < q_y0_std:
                     continue
-                if p_idx == nxt_page and blk.y0 >= nxt_y0_std:
-                    break
+                if p_idx == nxt_page:
+                    if blk.y0 >= nxt_y0_std:
+                        break
+                    # Early break if block looks like next question start in MS table
+                    if blk.y0 >= nxt_y0_std - BREAK_TOLERANCE:
+                        m = _RE_Q_NUM.match(blk.text.strip())
+                        if m and int(m.group(1)) == nxt_q_num:
+                            break
                 q_blocks.append(blk)
 
-        q_text_end = _last_text_y1(q_blocks)
+        # Post-collection trimming for MS question blocks
+        if qi + 1 < len(ms_starts):
+            q_blocks = [
+                b for b in q_blocks
+                if b.page < nxt_page or (b.page == nxt_page and b.y0 < nxt_y0_std - TRIM_MARGIN)
+            ]
+
         q_end_page = q_blocks[-1].page if q_blocks else q_page
+        ms_last_page_blocks = [b for b in q_blocks if b.page == q_end_page]
+        q_text_end = _last_text_y1(ms_last_page_blocks) if ms_last_page_blocks else q_y0_std
+        
+        if qi + 1 < len(ms_starts):
+            if nxt_page == q_end_page:
+                q_text_end = min(q_text_end, nxt_y0_std - TEXT_PAD - 2.0)
 
         q_regions = _make_regions(doc, q_page, q_y0_std, q_end_page, q_text_end, y_top, y_bottom)
 

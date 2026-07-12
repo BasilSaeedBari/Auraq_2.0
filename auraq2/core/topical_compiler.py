@@ -108,15 +108,15 @@ def _create_cover_page(
     # ── Notes
     notes = (
         "Document Details:\n"
-        "• Chronological past paper compilation.\n"
-        "• Vector layout retained — equations and graphs preserved.\n"
-        "• Automatically parsed and compiled via Auraq 2.0.\n"
-        "• Only question text extracted (working space excluded).\n"
+        "- Chronological past paper compilation.\n"
+        "- Vector layout retained - equations and graphs preserved.\n"
+        "- Automatically parsed and compiled via Auraq 2.0.\n"
+        "- Only question text extracted (working space excluded).\n"
     )
     if "Merged" in doc_type:
-        notes += "• Format: each question is immediately followed by its mark scheme solution."
+        notes += "- Format: each question is immediately followed by its mark scheme solution."
     else:
-        notes += f"• This booklet contains the {doc_type} sections only."
+        notes += f"- This booklet contains the {doc_type} sections only."
 
     page.insert_textbox(
         fitz.Rect(40, 580, 555, 700),
@@ -199,7 +199,7 @@ def build_topical_booklets(
         topic = item["question"].get("topic") or "Unclassified"
         by_topic[topic].append(item)
 
-    year_range = f"{start_year} – {end_year}"
+    year_range = f"{start_year} - {end_year}"
 
     generation_topics = list(topics_list)
     if by_topic.get("Unclassified"):
