@@ -255,14 +255,35 @@ class AuraqApp:
 
     # ── UI construction ───────────────────────────────────────────────────────
     def _build_ui(self) -> None:
-        # Title
+        # 1. SET WINDOW ICON (Title bar & Taskbar)
+        try:
+            # Load a high-res transparent PNG (e.g., 256x256). 
+            # Note: Tkinter looks for this path relative to where you run 'py -m auraq2.main'
+            self.icon_image = tk.PhotoImage(file="static/pictures/logo_256.png")
+            self.root.iconphoto(True, self.icon_image)
+        except Exception as e:
+            logger.warning(f"Could not load window icon: {e}")
+            # Optional fallback for Windows:
+            self.root.iconbitmap('static/pictures/logo.ico')
+
+        # 2. HEADER AREA (Title + Logo)
+        header_frame = tk.Frame(self.root, bg=COLOR_BG)
+        header_frame.pack(pady=(14, 8))
+        
+        # Place the logo image on the left of the header
+        logo_label = tk.Label(header_frame, bg=COLOR_BG)
+        if hasattr(self, 'icon_image'):
+            logo_label.configure(image=self.icon_image)
+        logo_label.pack(side="left", padx=(0, 10))
+
+        # Place the text on the right
         tk.Label(
-            self.root, text="AURAQ 2.0  —  PAST PAPER COMPILER",
+            header_frame, text="AURAQ 2.0  —  PAST PAPER COMPILER",
             fg=COLOR_TEXT_HIGHLIGHT, bg=COLOR_BG,
             font=("Segoe UI", 17, "bold"),
-        ).pack(pady=(14, 8))
+        ).pack(side="left")
 
-        # Two-column body
+        # 3. TWO-COLUMN BODY (Kept exactly as it was in your code)
         body = tk.Frame(self.root, bg=COLOR_BG)
         body.pack(fill="both", expand=True, padx=18, pady=(0, 4))
 
