@@ -256,15 +256,20 @@ class AuraqApp:
     # ── UI construction ───────────────────────────────────────────────────────
     def _build_ui(self) -> None:
         # 1. SET WINDOW ICON (Title bar & Taskbar)
+        current_dir = os.path.dirname(os.path.abspath(__file__))      # points to .../auraq2/gui/
+        project_root = os.path.dirname(os.path.dirname(current_dir))    # points to .../Auraq_2.0/
         try:
             # Load a high-res transparent PNG (e.g., 256x256). 
             # Note: Tkinter looks for this path relative to where you run 'py -m auraq2.main'
-            self.icon_image = tk.PhotoImage(file="static/pictures/logo_256.png")
+            self.icon_image = tk.PhotoImage(file=os.path.join(project_root, 'static', 'pictures', 'logo_32.png'))
             self.root.iconphoto(True, self.icon_image)
         except Exception as e:
+            icon_path = os.path.join(project_root, 'static', 'pictures', 'logo.ico')
+            try:
+                self.root.iconbitmap(icon_path)
+            except Exception as e:
+                logger.warning(f"Could not load icon: {e}")
             logger.warning(f"Could not load window icon: {e}")
-            # Optional fallback for Windows:
-            self.root.iconbitmap('static/pictures/logo.ico')
 
         # 2. HEADER AREA (Title + Logo)
         header_frame = tk.Frame(self.root, bg=COLOR_BG)
