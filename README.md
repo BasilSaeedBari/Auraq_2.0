@@ -1,7 +1,9 @@
 <p align="center">
   <img src="static/pictures/banner.png" alt="Auraq 2.0 Banner" width="100%" />
 </p>
-# Auraq 2.0 — High-Fidelity Topical Past Paper Compiler & Classifier
+
+# Auraq 2.0 
+## High-Fidelity Topical Past Paper Compiler & Classifier
 
 Auraq 2.0 is an enterprise-grade, high-performance compilation and classification pipeline designed to automate the curation of topical worksheets from Cambridge Assessment International Education (CAIE) past examination papers. 
 
