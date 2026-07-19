@@ -21,7 +21,7 @@ _DEFAULTS: dict[str, dict[str, str]] = {
         "max_download_workers": "10",
         "max_registry_workers": "4",
         "generate_docx": "no",
-        "docx_dpi": "300",
+        "docx_dpi": "2400",
     },
     "Filters": {
         "remove_blank": "yes",
@@ -37,7 +37,7 @@ _DEFAULTS: dict[str, dict[str, str]] = {
     },
     "AI": {
         "batch_confidence_threshold": "0.80",    # raised from 0.70
-        "heuristic_fallback_score": "6",
+        "heuristic_fallback_score": "10",
         "strong_heuristic_score": "12",          # heuristic overrides AI below strong_ai_threshold
         "strong_ai_threshold": "0.90",           # AI is unconditionally trusted above this
         "ai_mode": "hybrid",  # "batch", "heuristics", "hybrid"
@@ -66,6 +66,18 @@ def init_config() -> configparser.ConfigParser:
                     if key not in config[section]:
                         config[section][key] = val
                         updated = True
+
+        # Enforce/upgrade docx_dpi to 2400 if it is less than 2400 or invalid
+        if "General" in config and config.has_option("General", "docx_dpi"):
+            try:
+                current_dpi = int(config.get("General", "docx_dpi"))
+                if current_dpi < 2400:
+                    config["General"]["docx_dpi"] = "2400"
+                    updated = True
+            except ValueError:
+                config["General"]["docx_dpi"] = "2400"
+                updated = True
+
         if updated:
             _write(config)
 
@@ -92,7 +104,7 @@ def save_config(
     groq_model_fallbacks: str = "llama-4-scout,openai/gpt-oss-20b,qwen/qwen-3-32b",
     ai_mode: str = "hybrid",
     confidence_threshold: float = 0.80,
-    heuristic_fallback_score: int = 6,
+    heuristic_fallback_score: int = 10,
     strong_ai_threshold: float = 0.90,
 ) -> None:
     """Persist updated user settings."""

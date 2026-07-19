@@ -41,22 +41,36 @@ def insert_regions_into_pdf(
         h = page.rect.height
         w = page.rect.width
         stamp_rect = fitz.Rect(6, h - 14, min(w - 6, 6 + len(label) * 4.2), h - 4)
-        page.insert_textbox(
-            stamp_rect,
-            label,
-            fontsize=5.5,
-            fontname="helv",
-            color=(0.55, 0.55, 0.55),
-            align=fitz.TEXT_ALIGN_LEFT,
-        )
+        if stamp_rect.width <= 0 or stamp_rect.height <= 0:
+            logger.warning(f"Invalid stamp_rect dimension: {stamp_rect}")
+            return
+        try:
+            page.insert_textbox(
+                stamp_rect,
+                label,
+                fontsize=5.5,
+                fontname="helv",
+                color=(0.55, 0.55, 0.55),
+                align=fitz.TEXT_ALIGN_LEFT,
+            )
+        except Exception as e:
+            logger.warning(f"Failed to insert stamp textbox: {e}")
 
     if regions:
         for reg in regions:
             p_idx = reg["page"]
-            x0, y0, x1, y1 = reg["rect"]
+            rect_val = reg["rect"]
+            if not isinstance(rect_val, list) or len(rect_val) != 4:
+                logger.warning(f"Invalid rect format on page {p_idx}: {rect_val}")
+                continue
+            x0, y0, x1, y1 = rect_val
+
+            if not all(isinstance(v, (int, float)) for v in (x0, y0, x1, y1)):
+                logger.warning(f"Invalid non-numeric rect values on page {p_idx}: {rect_val}")
+                continue
 
             if x1 <= x0 or y1 <= y0:
-                logger.debug(f"Skipping degenerate region on page {p_idx}: {reg['rect']}")
+                logger.debug(f"Skipping degenerate region on page {p_idx}: {rect_val}")
                 continue
 
             src_page = src_doc[p_idx]

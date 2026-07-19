@@ -334,7 +334,13 @@ class AuraqApp:
         self._paper_var = tk.StringVar()
         self._paper_cb  = ttk.Combobox(frm, textvariable=self._paper_var, state="readonly",
                                         font=("Segoe UI", 10))
-        self._paper_cb.pack(fill="x", pady=(0, 10))
+        self._paper_cb.pack(fill="x", pady=(0, 4))
+        
+        self._combine_papers_var = tk.BooleanVar(value=False)
+        tk.Checkbutton(frm, text="Combine all papers (4037: Paper 1 & 2)",
+                       variable=self._combine_papers_var, bg=COLOR_CARD, fg=COLOR_TEXT,
+                       activebackground=COLOR_CARD, activeforeground=COLOR_WHITE,
+                       selectcolor=COLOR_BG, font=("Segoe UI", 10)).pack(anchor="w", pady=(0, 10))
 
         # Variants
         _lbl("Variants (multi-select):")
@@ -574,9 +580,12 @@ class AuraqApp:
         subject_code = raw_sub.split(" — ")[0].strip()
 
         raw_paper = self._paper_var.get()
-        if not raw_paper:
-            messagebox.showerror("Error", "Please select a paper component."); return
-        paper_code = raw_paper.split(" — ")[0].strip()
+        if self._combine_papers_var.get() or (subject_code == "4037" and not raw_paper):
+            paper_codes = ["1", "2"]
+        else:
+            if not raw_paper:
+                messagebox.showerror("Error", "Please select a paper component."); return
+            paper_codes = [raw_paper.split(" — ")[0].strip()]
 
         variants = [k for k, v in self._variant_vars.items() if v.get()]
         if not variants:
@@ -610,7 +619,7 @@ class AuraqApp:
             app=self,
             curriculum=curriculum,
             subject_code=subject_code,
-            paper=paper_code,
+            paper=paper_codes,
             variants=variants,
             sessions=sessions,
             start_year=start_year,

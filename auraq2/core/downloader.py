@@ -12,6 +12,7 @@ from __future__ import annotations
 import os
 import re
 import urllib.parse
+import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import requests
@@ -31,8 +32,12 @@ HEADERS = {
 }
 TIMEOUT = 25
 
-# In-process cache for scraped Dynamic Papers directory listings
+# Caches with locks
 _dp_cache: dict[str, list[tuple[str, str]]] = {}
+_dp_lock = threading.Lock()
+
+_bestexamhelp_cache: dict[tuple[str, str, int], set[str]] = {}
+_beh_lock = threading.Lock()
 
 
 # --------------------------------------------------------------------------- #
@@ -81,7 +86,7 @@ def build_url_dynamicpapers_direct(spec: dict) -> str:
 # Dynamic Papers scrape (Cambridge)                                              #
 # --------------------------------------------------------------------------- #
 def _scrape_dynamic_papers(curriculum: str, dp_slug: str) -> list[tuple[str, str]]:
-    """Crawl Dynamic Papers subject page and cache all PDF href/filename pairs."""
+    """Crawl Dynamic Papers subject page and cache all PDF href/filename pairs (thread-safe)."""
     if "Cambridge" in curriculum:
         url_segment = "cambridge-past-papers"
     else:
@@ -89,35 +94,72 @@ def _scrape_dynamic_papers(curriculum: str, dp_slug: str) -> list[tuple[str, str
 
     subject_url = f"https://dynamicpapers.com/past-papers/{url_segment}/{dp_slug.strip('/')}/"
 
-    if subject_url in _dp_cache:
-        return _dp_cache[subject_url]
+    with _dp_lock:
+        if subject_url in _dp_cache:
+            return _dp_cache[subject_url]
 
-    logger.info(f"Scraping Dynamic Papers directory: {subject_url}")
-    links: list[tuple[str, str]] = []
+        logger.info(f"Scraping Dynamic Papers directory: {subject_url}")
+        links: list[tuple[str, str]] = []
+        try:
+            r = requests.get(subject_url, headers=HEADERS, timeout=TIMEOUT)
+            if r.status_code == 200:
+                matches = re.findall(
+                    r'<a[^>]+href="([^"]+\.pdf)"[^>]*>', r.text, re.IGNORECASE
+                )
+                for href in matches:
+                    href = href.strip()
+                    if href.startswith("//"):
+                        href = "https:" + href
+                    elif href.startswith("/"):
+                        href = "https://dynamicpapers.com" + href
+                    elif not href.startswith("http"):
+                        href = urllib.parse.urljoin(subject_url, href)
+                    filename = os.path.basename(urllib.parse.urlsplit(href).path)
+                    links.append((href, filename))
+                logger.debug(f"Found {len(links)} links on Dynamic Papers page.")
+            else:
+                logger.warning(f"Dynamic Papers returned {r.status_code} for {subject_url}")
+        except Exception as exc:
+            logger.error(f"Error scraping Dynamic Papers: {exc}")
+
+        _dp_cache[subject_url] = links
+        return links
+
+
+def _get_bestexamhelp_files(level: str, beh_slug: str, year: int) -> set[str]:
+    """Scrape BestExamHelp year page and cache the set of PDF filenames (thread-safe)."""
+    cache_key = (level, beh_slug, year)
+    with _beh_lock:
+        if cache_key in _bestexamhelp_cache:
+            return _bestexamhelp_cache[cache_key]
+
+        url = f"https://bestexamhelp.com/exam/{level}/{beh_slug}/{year}/"
+        filenames: set[str] = set()
+        logger.info(f"Scraping BestExamHelp directory listing for {year}: {url}")
+        try:
+            r = requests.get(url, headers=HEADERS, timeout=TIMEOUT)
+            if r.status_code == 200:
+                matches = re.findall(r'href="([^"]+\.pdf)"', r.text, re.IGNORECASE)
+                for href in matches:
+                    filename = os.path.basename(href)
+                    filenames.add(filename)
+                logger.debug(f"BestExamHelp {year}: found {len(filenames)} PDFs.")
+            else:
+                logger.warning(f"BestExamHelp year page returned {r.status_code} for {url}")
+        except Exception as exc:
+            logger.error(f"Error scraping BestExamHelp {year}: {exc}")
+
+        _bestexamhelp_cache[cache_key] = filenames
+        return filenames
+
+
+def _check_url_exists(url: str) -> bool:
+    """Send a HEAD request to verify URL existence."""
     try:
-        r = requests.get(subject_url, headers=HEADERS, timeout=TIMEOUT)
-        if r.status_code == 200:
-            matches = re.findall(
-                r'<a[^>]+href="([^"]+\.pdf)"[^>]*>', r.text, re.IGNORECASE
-            )
-            for href in matches:
-                href = href.strip()
-                if href.startswith("//"):
-                    href = "https:" + href
-                elif href.startswith("/"):
-                    href = "https://dynamicpapers.com" + href
-                elif not href.startswith("http"):
-                    href = urllib.parse.urljoin(subject_url, href)
-                filename = os.path.basename(urllib.parse.urlsplit(href).path)
-                links.append((href, filename))
-            logger.debug(f"Found {len(links)} links on Dynamic Papers page.")
-        else:
-            logger.warning(f"Dynamic Papers returned {r.status_code} for {subject_url}")
-    except Exception as exc:
-        logger.error(f"Error scraping Dynamic Papers: {exc}")
-
-    _dp_cache[subject_url] = links
-    return links
+        r = requests.head(url, headers=HEADERS, timeout=5, allow_redirects=True)
+        return r.status_code == 200
+    except Exception:
+        return False
 
 
 # --------------------------------------------------------------------------- #
@@ -176,11 +218,16 @@ def download_spec(spec: dict, base_dir: str, source_order: list[str]) -> bool:
 
     curriculum = spec.get("curriculum", "Cambridge A-Levels")
     is_cambridge = "Cambridge" in curriculum
+    filename = _filename_from_spec(spec)
 
     for source in source_order:
         if source == "papacambridge" and is_cambridge:
-            if download_pdf(build_url_papacambridge(spec), local_path):
-                return True
+            url = build_url_papacambridge(spec)
+            # Quick HEAD check to avoid downloading 404s
+            if _check_url_exists(url):
+                if download_pdf(url, local_path):
+                    return True
+            # else fall through
 
         elif source == "bestexamhelp" and spec.get("beh_slug"):
             # Map curriculum to BEH level path
@@ -190,7 +237,18 @@ def download_spec(spec: dict, base_dir: str, source_order: list[str]) -> bool:
                 level = "cambridge-o-level"
             else:
                 level = "cambridge-international-a-level"
-            if download_pdf(build_url_bestexamhelp(spec, level), local_path):
+
+            beh_slug = spec["beh_slug"]
+            year = spec["year"]
+
+            # Check availability from cached year listing
+            available_files = _get_bestexamhelp_files(level, beh_slug, year)
+            if filename not in available_files:
+                logger.debug(f"File {filename} not listed on BestExamHelp for {year}")
+                continue  # skip this source
+
+            url = build_url_bestexamhelp(spec, level)
+            if download_pdf(url, local_path):
                 return True
 
         elif source == "dynamicpapers":
@@ -199,11 +257,11 @@ def download_spec(spec: dict, base_dir: str, source_order: list[str]) -> bool:
                 return True
             dp_slug = spec.get("dp_slug", "maths")
             for href, fn in _scrape_dynamic_papers(curriculum, dp_slug):
-                if fn.lower() == _filename_from_spec(spec).lower():
+                if fn.lower() == filename.lower():
                     if download_pdf(href, local_path):
                         return True
 
-    logger.warning(f"[FAILED] Failed all sources: {_filename_from_spec(spec)}")
+    logger.warning(f"[FAILED] Failed all sources: {filename}")
     return False
 
 

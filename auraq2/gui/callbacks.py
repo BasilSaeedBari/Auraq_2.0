@@ -38,7 +38,7 @@ class PipelineThread(threading.Thread):
         app,
         curriculum: str,
         subject_code: str,
-        paper: str,
+        paper: str | list[str],
         variants: list[str],
         sessions: list[str],
         start_year: int,

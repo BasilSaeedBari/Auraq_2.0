@@ -67,7 +67,7 @@ def _variant_to_paper_and_digit(variant: str, paper: str) -> tuple[str, str]:
 def run_pipeline(
     curriculum: str,
     subject_code: str,
-    paper: str,             # single paper component, e.g. "1"
+    paper: str | list[str], # single paper component e.g. "1" or list e.g. ["1", "2"]
     variants: list[str],    # variant digits, e.g. ["1", "2", "3"]
     sessions: list[str],    # e.g. ["May/June", "Oct/Nov"]
     start_year: int,
@@ -140,24 +140,33 @@ def run_pipeline(
         logger.error(f"Subject {subject_code} not found under {curriculum}")
         return False
 
-    topics       = get_topics(curriculum, subject_code, paper)
-    kw_rules     = get_keyword_rules(curriculum, subject_code, paper)
-    is_mcq       = is_mcq_paper(curriculum, subject_code, paper)
+    if isinstance(paper, str):
+        paper_codes = [paper]
+    else:
+        paper_codes = paper
+
+    primary_paper = paper_codes[0]
+
+    topics       = get_topics(curriculum, subject_code, primary_paper)
+    kw_rules     = get_keyword_rules(curriculum, subject_code, primary_paper)
+    is_mcq       = is_mcq_paper(curriculum, subject_code, primary_paper)
     syllabus_name = (
         f"{curriculum} {sub_details.get('name', '')} "
-        f"({subject_code}) - Component {paper}"
+        f"({subject_code}) - Component {primary_paper}"
     )
 
     beh_slug = sub_details.get("beh_slug")
     dp_slug  = sub_details.get("dp_slug")
 
     # ── Build full variant codes (e.g. paper=1, variant=1 → "11") -----------
-    full_variants: list[str] = []
-    for v in variants:
-        if len(v) == 1:
-            full_variants.append(f"{paper}{v}")
-        else:
-            full_variants.append(v)
+    full_variants_set = set()
+    for pc in paper_codes:
+        for v in variants:
+            if len(v) == 1:
+                full_variants_set.add(f"{pc}{v}")
+            else:
+                full_variants_set.add(v)
+    full_variants = sorted(list(full_variants_set))
 
     years = list(range(start_year, end_year + 1))
 
@@ -165,7 +174,7 @@ def run_pipeline(
     logger.info("Stage 1: Downloading PDFs ...")
     specs = generate_specs(
         curriculum, subject_code, beh_slug, dp_slug,
-        years, sessions, [paper], full_variants,
+        years, sessions, paper_codes, full_variants,
     )
     _cb("Downloading", 0, len(specs))
 
@@ -283,6 +292,20 @@ def run_pipeline(
                 completed += 1
                 _cb("Parsing", completed, len(qp_specs) + len(ms_specs))
 
+    # ── Stage 2.5: Consistency Check ──────────────────────────────────────────
+    for qp_pid, qp_reg in qp_registries.items():
+        ms_pid = qp_pid.replace("_qp_", "_ms_")
+        ms_reg = ms_registries.get(ms_pid)
+        if ms_reg:
+            qp_qs = len(qp_reg.get("questions", []))
+            ms_qs = len(ms_reg.get("questions", []))
+            if qp_qs != ms_qs:
+                logger.warning(
+                    f"Mismatched question count for {qp_pid}: "
+                    f"QP has {qp_qs} questions, but MS ({ms_pid}) has {ms_qs} questions! "
+                    "This could indicate skipped questions during layout parsing."
+                )
+
     # ── Stage 3: AI Classification ────────────────────────────────────────────
     logger.info("Stage 3: Classifying questions ...")
     _cb("Classifying", 0, len(qp_registries))
@@ -396,7 +419,7 @@ def run_pipeline(
         paper_questions=paper_questions,
         output_dir=output_dir,
         subject_code=subject_code,
-        paper_code=paper,
+        paper_codes=paper_codes,
         syllabus_name=syllabus_name,
         topics_list=topics,
         start_year=start_year,

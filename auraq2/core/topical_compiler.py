@@ -32,6 +32,38 @@ _NEAR_WHITE   = (0.97,   0.97,   0.97)
 _WHITE        = (1.0,    1.0,    1.0)
 
 
+# ── Safe insert textbox wrapper ───────────────────────────────────────────────
+def _safe_insert_textbox(
+    page: fitz.Page,
+    rect: fitz.Rect,
+    text: str,
+    fontsize: float = 11,
+    fontname: str = "helv",
+    color: tuple[float, float, float] = (0, 0, 0),
+    align: int = fitz.TEXT_ALIGN_LEFT,
+) -> None:
+    """Safely insert a textbox, logging details if it fails due to invalid parameters."""
+    try:
+        if not isinstance(rect, fitz.Rect):
+            logger.warning(f"Invalid rect type: {type(rect)}")
+            return
+        if rect.width <= 0 or rect.height <= 0 or not all(isinstance(v, (int, float)) for v in (rect.x0, rect.y0, rect.x1, rect.y1)):
+            logger.warning(f"Invalid or degenerate rect for textbox: {rect}, text: '{text}'")
+            return
+        if not text:
+            logger.warning(f"Skipping empty textbox for rect: {rect}")
+            return
+        page.insert_textbox(
+            rect,
+            text,
+            fontsize=fontsize,
+            fontname=fontname,
+            color=color,
+            align=align,
+        )
+    except Exception as e:
+        logger.error(f"insert_textbox failed: rect={rect}, text='{text}', error={e}")
+
 # ── Cover page ────────────────────────────────────────────────────────────────
 def _create_cover_page(
     doc: fitz.Document,
@@ -44,25 +76,38 @@ def _create_cover_page(
     insert_at: int = 0,
 ) -> None:
     """Draw a premium vector cover page (A4 595×842) and insert at position *insert_at*."""
+    # Sanitize inputs
+    title = (title or "Topical Past Papers").strip()
+    syllabus = (syllabus or "Unknown Syllabus").strip()
+    topic = (topic or "Unclassified").strip()
+    if not topic:
+        topic = "Unclassified"
+    doc_type = (doc_type or "Question Paper (QP)").strip()
+    year_range = (year_range or "Unknown Years").strip()
+    q_count = (q_count or "0").strip()
+
     page = doc.new_page(width=595, height=842, pno=insert_at)
 
     # ── Header banner
     page.draw_rect(fitz.Rect(0, 0, 595, 195), color=_INDIGO, fill=_INDIGO, width=0)
     page.draw_rect(fitz.Rect(0, 195, 595, 203), color=_ORCHID, fill=_ORCHID, width=0)
 
-    page.insert_textbox(
+    _safe_insert_textbox(
+        page,
         fitz.Rect(40, 38, 555, 60),
         "AURAQ 2.0  ·  TOPICAL COMPILATION SYSTEM",
         fontsize=9.5, fontname="helv", color=_THISTLE,
         align=fitz.TEXT_ALIGN_LEFT,
     )
-    page.insert_textbox(
+    _safe_insert_textbox(
+        page,
         fitz.Rect(40, 68, 555, 130),
         title.upper(),
         fontsize=26, fontname="helv", color=_WHITE,
         align=fitz.TEXT_ALIGN_LEFT,
     )
-    page.insert_textbox(
+    _safe_insert_textbox(
+        page,
         fitz.Rect(40, 138, 555, 170),
         doc_type.upper(),
         fontsize=13, fontname="helv", color=_PALE_SLATE,
@@ -70,7 +115,8 @@ def _create_cover_page(
     )
 
     # ── Syllabus label
-    page.insert_textbox(
+    _safe_insert_textbox(
+        page,
         fitz.Rect(40, 228, 555, 274),
         f"Syllabus Component:\n{syllabus}",
         fontsize=14, fontname="helv", color=_GRAPE,
@@ -80,7 +126,8 @@ def _create_cover_page(
     # ── Topic block
     page.draw_rect(fitz.Rect(40, 300, 555, 418), color=_NEAR_WHITE, fill=_NEAR_WHITE, width=0)
     page.draw_rect(fitz.Rect(40, 300, 48,  418), color=_ORCHID,     fill=_ORCHID,     width=0)
-    page.insert_textbox(
+    _safe_insert_textbox(
+        page,
         fitz.Rect(64, 322, 540, 405),
         f"TOPIC:\n{topic.upper()}",
         fontsize=20, fontname="helv", color=_INDIGO,
@@ -90,7 +137,8 @@ def _create_cover_page(
     # ── Metadata boxes
     # Years
     page.draw_rect(fitz.Rect(40, 455, 278, 542), color=_NEAR_WHITE, fill=_NEAR_WHITE, width=0)
-    page.insert_textbox(
+    _safe_insert_textbox(
+        page,
         fitz.Rect(50, 470, 268, 536),
         f"YEARS INCLUDED\n\n{year_range}",
         fontsize=11.5, fontname="helv", color=_GRAPE,
@@ -98,7 +146,8 @@ def _create_cover_page(
     )
     # Questions
     page.draw_rect(fitz.Rect(317, 455, 555, 542), color=_NEAR_WHITE, fill=_NEAR_WHITE, width=0)
-    page.insert_textbox(
+    _safe_insert_textbox(
+        page,
         fitz.Rect(327, 470, 545, 536),
         f"TOTAL QUESTIONS\n\n{q_count}",
         fontsize=11.5, fontname="helv", color=_GRAPE,
@@ -118,7 +167,8 @@ def _create_cover_page(
     else:
         notes += f"- This booklet contains the {doc_type} sections only."
 
-    page.insert_textbox(
+    _safe_insert_textbox(
+        page,
         fitz.Rect(40, 580, 555, 700),
         notes, fontsize=10, fontname="helv", color=_GRAPE,
         align=fitz.TEXT_ALIGN_LEFT,
@@ -126,7 +176,8 @@ def _create_cover_page(
 
     # ── Footer
     page.draw_line(fitz.Point(40, 730), fitz.Point(555, 730), color=_PALE_SLATE, width=1)
-    page.insert_textbox(
+    _safe_insert_textbox(
+        page,
         fitz.Rect(40, 742, 555, 772),
         "Compiled by Auraq 2.0. All copyrights belong to the respective exam boards.",
         fontsize=8.5, fontname="helv", color=_PALE_SLATE,
@@ -157,12 +208,158 @@ def _write_source_map(csv_path: str, rows: list[tuple[int, str, int, str]]) -> N
         logger.warning(f"Could not write source map {csv_path}: {exc}")
 
 
+# ── Helper for compiling booklets for a single topic ──────────────────────────
+def _build_single_topic_booklets(
+    topic: str,
+    items: list[dict],
+    topical_root: str,
+    paper_codes: list[str],
+    subject_code: str,
+    syllabus_name: str,
+    year_range: str,
+    docx_tasks: list[tuple[str, str]],
+) -> None:
+    q_count   = len(items)
+    topic_fn  = _safe_name(topic)
+    topic_root = os.path.join(topical_root, topic_fn)
+    os.makedirs(topic_root, exist_ok=True)
+
+    qp_sub = os.path.join(topic_root, "QP")
+    ms_sub = os.path.join(topic_root, "MS")
+    merged_sub = os.path.join(topic_root, "Merged")
+    for sub in (qp_sub, ms_sub, merged_sub):
+        os.makedirs(sub, exist_ok=True)
+
+    paper_part = "-".join(sorted(paper_codes))
+    base_name = f"{subject_code}_Paper_{paper_part}_{topic_fn}"
+
+    # ── Open all required source docs ──────────────────────────────────
+    open_docs: dict[tuple, fitz.Document] = {}
+
+    def _get_doc(path: str | None, filter_flags: dict | None = None) -> fitz.Document | None:
+        if not path or not os.path.exists(path):
+            return None
+        flags_key = tuple(sorted(filter_flags.items())) if filter_flags else None
+        key = (path, flags_key)
+        if key not in open_docs:
+            if filter_flags:
+                from auraq2.core.compiler import filter_pdf
+                open_docs[key] = filter_pdf(
+                    path,
+                    remove_blank=filter_flags.get("remove_blank", True),
+                    remove_formula=filter_flags.get("remove_formula", False),
+                    remove_additional=filter_flags.get("remove_additional", True),
+                )
+            else:
+                logger.warning(f"No filter flags stored in registry for {os.path.basename(path)}. Falling back to unfiltered PDF extraction.")
+                open_docs[key] = fitz.open(path)
+        return open_docs[key]
+
+    try:
+        # Build shared source-map rows (same question order for QP & Merged)
+        csv_rows: list[tuple] = [
+            (sno, item.get("paper_id", ""), item["question"].get("q_num", 0), item.get("source_url", ""))
+            for sno, item in enumerate(items, 1)
+        ]
+
+        # ── QP Booklet ─────────────────────────────────────────────────
+        qp_dest = fitz.open()
+        _create_cover_page(
+            qp_dest, "Topical Past Papers", syllabus_name, topic,
+            "Question Paper (QP)", year_range, str(q_count),
+        )
+        for item in items:
+            qp_doc     = _get_doc(item.get("qp_path"), item.get("qp_filter_flags"))
+            q_entry    = item["question"]
+            item_label = item.get("label", "")
+            if qp_doc:
+                regions = q_entry.get("regions", [])
+                fallback = (q_entry.get("start_page"), q_entry.get("end_page"))
+                fallback_tuple = tuple(fallback) if None not in fallback else None
+                insert_regions_into_pdf(qp_dest, qp_doc, regions, fallback_tuple, label=item_label)
+
+        qp_path_out = os.path.join(qp_sub, f"{base_name}_QP.pdf")
+        qp_dest.save(qp_path_out)
+        qp_dest.close()
+        _write_source_map(qp_path_out.replace(".pdf", ".csv"), csv_rows)
+        docx_tasks.append((qp_path_out, qp_path_out.replace(".pdf", ".docx")))
+
+        # ── MS Booklet ─────────────────────────────────────────────────
+        ms_dest      = fitz.open()
+        has_ms       = False
+        ms_csv_rows: list[tuple] = []
+        _create_cover_page(
+            ms_dest, "Topical Past Papers", syllabus_name, topic,
+            "Marking Scheme (MS)", year_range, str(q_count),
+        )
+        for item in items:
+            ms_doc     = _get_doc(item.get("ms_path"), item.get("ms_filter_flags"))
+            ms_entry   = item.get("ms_entry")
+            item_label = item.get("label", "")
+            if ms_doc and ms_entry:
+                regions = ms_entry.get("regions", [])
+                fallback = (ms_entry.get("start_page"), ms_entry.get("end_page"))
+                fallback_tuple = tuple(fallback) if None not in fallback else None
+                added = insert_regions_into_pdf(ms_dest, ms_doc, regions, fallback_tuple, label=item_label)
+                if added:
+                    has_ms = True
+                    ms_csv_rows.append((
+                        len(ms_csv_rows) + 1,
+                        item.get("paper_id", ""),
+                        item["question"].get("q_num", 0),
+                        item.get("source_url", ""),
+                    ))
+
+        if has_ms:
+            ms_path_out = os.path.join(ms_sub, f"{base_name}_MS.pdf")
+            ms_dest.save(ms_path_out)
+            _write_source_map(ms_path_out.replace(".pdf", ".csv"), ms_csv_rows)
+            docx_tasks.append((ms_path_out, ms_path_out.replace(".pdf", ".docx")))
+        ms_dest.close()
+
+        # ── Merged Booklet ─────────────────────────────────────────────
+        merged_dest = fitz.open()
+        _create_cover_page(
+            merged_dest, "Topical Past Papers", syllabus_name, topic,
+            "Questions & Solutions (Merged)", year_range, str(q_count),
+        )
+        for item in items:
+            qp_doc   = _get_doc(item.get("qp_path"), item.get("qp_filter_flags"))
+            ms_doc   = _get_doc(item.get("ms_path"), item.get("ms_filter_flags"))
+            q_entry  = item["question"]
+            ms_entry = item.get("ms_entry")
+            item_label = item.get("label", "")
+
+            if qp_doc:
+                regions = q_entry.get("regions", [])
+                fb = (q_entry.get("start_page"), q_entry.get("end_page"))
+                insert_regions_into_pdf(merged_dest, qp_doc, regions, tuple(fb) if None not in fb else None, label=item_label)
+            if ms_doc and ms_entry:
+                regions = ms_entry.get("regions", [])
+                fb = (ms_entry.get("start_page"), ms_entry.get("end_page"))
+                insert_regions_into_pdf(merged_dest, ms_doc, regions, tuple(fb) if None not in fb else None, label=item_label)
+
+        merged_path_out = os.path.join(merged_sub, f"{base_name}_Merged.pdf")
+        merged_dest.save(merged_path_out)
+        merged_dest.close()
+        _write_source_map(merged_path_out.replace(".pdf", ".csv"), csv_rows)
+        docx_tasks.append((merged_path_out, merged_path_out.replace(".pdf", ".docx")))
+
+    finally:
+        # Close all opened source documents
+        for doc in open_docs.values():
+            try:
+                doc.close()
+            except Exception:
+                pass
+
+
 # ── Main public function ───────────────────────────────────────────────────────
 def build_topical_booklets(
     paper_questions: list[dict],
     output_dir: str,
     subject_code: str,
-    paper_code: str,
+    paper_codes: list[str],
     syllabus_name: str,
     topics_list: list[str],
     start_year: int,
@@ -187,11 +384,8 @@ def build_topical_booklets(
       Topical_MS/{subject}_Paper_{paper}_{topic}_MS.pdf
       Topical_Merged/{subject}_Paper_{paper}_{topic}_Merged.pdf
     """
-    qp_dir     = os.path.join(output_dir, "Topical_QP")
-    ms_dir     = os.path.join(output_dir, "Topical_MS")
-    merged_dir = os.path.join(output_dir, "Topical_Merged")
-    for d in (qp_dir, ms_dir, merged_dir):
-        os.makedirs(d, exist_ok=True)
+    topical_root = os.path.join(output_dir, "Topical")
+    os.makedirs(topical_root, exist_ok=True)
 
     docx_tasks: list[tuple[str, str]] = []
 
@@ -213,131 +407,22 @@ def build_topical_booklets(
         if not items:
             continue
 
-        q_count   = len(items)
-        topic_fn  = _safe_name(topic)
-        base_name = f"{subject_code}_Paper_{paper_code}_{topic_fn}"
-
+        q_count = len(items)
         logger.info(f"Building booklets: {topic} ({q_count} questions)")
 
-        # ── Open all required source docs ──────────────────────────────────
-        open_docs: dict[tuple, fitz.Document] = {}
-
-        def _get_doc(path: str | None, filter_flags: dict | None = None) -> fitz.Document | None:
-            if not path or not os.path.exists(path):
-                return None
-            flags_key = tuple(sorted(filter_flags.items())) if filter_flags else None
-            key = (path, flags_key)
-            if key not in open_docs:
-                if filter_flags:
-                    from auraq2.core.compiler import filter_pdf
-                    open_docs[key] = filter_pdf(
-                        path,
-                        remove_blank=filter_flags.get("remove_blank", True),
-                        remove_formula=filter_flags.get("remove_formula", False),
-                        remove_additional=filter_flags.get("remove_additional", True),
-                    )
-                else:
-                    logger.warning(f"No filter flags stored in registry for {os.path.basename(path)}. Falling back to unfiltered PDF extraction.")
-                    open_docs[key] = fitz.open(path)
-            return open_docs[key]
-
         try:
-            # Build shared source-map rows (same question order for QP & Merged)
-            csv_rows: list[tuple] = [
-                (sno, item.get("paper_id", ""), item["question"].get("q_num", 0), item.get("source_url", ""))
-                for sno, item in enumerate(items, 1)
-            ]
-
-            # ── QP Booklet ─────────────────────────────────────────────────
-            qp_dest = fitz.open()
-            _create_cover_page(
-                qp_dest, "Topical Past Papers", syllabus_name, topic,
-                "Question Paper (QP)", year_range, str(q_count),
+            _build_single_topic_booklets(
+                topic,
+                items,
+                topical_root,
+                paper_codes,
+                subject_code,
+                syllabus_name,
+                year_range,
+                docx_tasks,
             )
-            for item in items:
-                qp_doc     = _get_doc(item.get("qp_path"), item.get("qp_filter_flags"))
-                q_entry    = item["question"]
-                item_label = item.get("label", "")
-                if qp_doc:
-                    regions = q_entry.get("regions", [])
-                    fallback = (q_entry.get("start_page"), q_entry.get("end_page"))
-                    fallback_tuple = tuple(fallback) if None not in fallback else None
-                    insert_regions_into_pdf(qp_dest, qp_doc, regions, fallback_tuple, label=item_label)
-
-            qp_path_out = os.path.join(qp_dir, f"{base_name}_QP.pdf")
-            qp_dest.save(qp_path_out)
-            qp_dest.close()
-            _write_source_map(qp_path_out.replace(".pdf", ".csv"), csv_rows)
-            docx_tasks.append((qp_path_out, qp_path_out.replace(".pdf", ".docx")))
-
-            # ── MS Booklet ─────────────────────────────────────────────────
-            ms_dest      = fitz.open()
-            has_ms       = False
-            ms_csv_rows: list[tuple] = []
-            _create_cover_page(
-                ms_dest, "Topical Past Papers", syllabus_name, topic,
-                "Marking Scheme (MS)", year_range, str(q_count),
-            )
-            for item in items:
-                ms_doc     = _get_doc(item.get("ms_path"), item.get("ms_filter_flags"))
-                ms_entry   = item.get("ms_entry")
-                item_label = item.get("label", "")
-                if ms_doc and ms_entry:
-                    regions = ms_entry.get("regions", [])
-                    fallback = (ms_entry.get("start_page"), ms_entry.get("end_page"))
-                    fallback_tuple = tuple(fallback) if None not in fallback else None
-                    added = insert_regions_into_pdf(ms_dest, ms_doc, regions, fallback_tuple, label=item_label)
-                    if added:
-                        has_ms = True
-                        ms_csv_rows.append((
-                            len(ms_csv_rows) + 1,
-                            item.get("paper_id", ""),
-                            item["question"].get("q_num", 0),
-                            item.get("source_url", ""),
-                        ))
-
-            if has_ms:
-                ms_path_out = os.path.join(ms_dir, f"{base_name}_MS.pdf")
-                ms_dest.save(ms_path_out)
-                _write_source_map(ms_path_out.replace(".pdf", ".csv"), ms_csv_rows)
-                docx_tasks.append((ms_path_out, ms_path_out.replace(".pdf", ".docx")))
-            ms_dest.close()
-
-            # ── Merged Booklet ─────────────────────────────────────────────
-            merged_dest = fitz.open()
-            _create_cover_page(
-                merged_dest, "Topical Past Papers", syllabus_name, topic,
-                "Questions & Solutions (Merged)", year_range, str(q_count),
-            )
-            for item in items:
-                qp_doc   = _get_doc(item.get("qp_path"), item.get("qp_filter_flags"))
-                ms_doc   = _get_doc(item.get("ms_path"), item.get("ms_filter_flags"))
-                q_entry  = item["question"]
-                ms_entry = item.get("ms_entry")
-                item_label = item.get("label", "")
-
-                if qp_doc:
-                    regions = q_entry.get("regions", [])
-                    fb = (q_entry.get("start_page"), q_entry.get("end_page"))
-                    insert_regions_into_pdf(merged_dest, qp_doc, regions, tuple(fb) if None not in fb else None, label=item_label)
-                if ms_doc and ms_entry:
-                    regions = ms_entry.get("regions", [])
-                    fb = (ms_entry.get("start_page"), ms_entry.get("end_page"))
-                    insert_regions_into_pdf(merged_dest, ms_doc, regions, tuple(fb) if None not in fb else None, label=item_label)
-
-            merged_path_out = os.path.join(merged_dir, f"{base_name}_Merged.pdf")
-            merged_dest.save(merged_path_out)
-            merged_dest.close()
-            _write_source_map(merged_path_out.replace(".pdf", ".csv"), csv_rows)
-            docx_tasks.append((merged_path_out, merged_path_out.replace(".pdf", ".docx")))
-
-        finally:
-            # Close all opened source documents
-            for doc in open_docs.values():
-                try:
-                    doc.close()
-                except Exception:
-                    pass
+        except Exception as exc:
+            logger.error(f"Failed to build booklets for topic '{topic}': {exc}", exc_info=True)
 
     if generate_docx and docx_tasks:
         logger.info(f"Generating DOCX booklets (pages as images) for {len(docx_tasks)} files...")

@@ -49,7 +49,7 @@ def run_cli(args) -> None:
         success = run_pipeline(
             curriculum=args.curriculum,
             subject_code=args.subject,
-            paper=args.paper,
+            paper=args.papers,
             variants=args.variants,
             sessions=sessions,
             start_year=start_year,

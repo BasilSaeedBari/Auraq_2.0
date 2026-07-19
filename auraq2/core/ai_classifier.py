@@ -41,6 +41,24 @@ STRONG_AI_THRESHOLD      = 0.90
 # --------------------------------------------------------------------------- #
 # Prompt builder                                                                 #
 # --------------------------------------------------------------------------- #
+TOPIC_DESCRIPTIONS_4037 = {
+    "Functions": "Questions about domain, range, composite functions (fg, gf), inverse functions (f⁻¹, g⁻¹), one‑to‑one mappings, and transformations of graphs (translations, reflections, stretches).",
+    "Quadratic Functions": "Questions involving quadratic equations, discriminant (b²−4ac), roots (real, equal, distinct), vertex, axis of symmetry, completing the square, and finding maximum/minimum values.",
+    "Inequalities": "Questions about solving linear, quadratic, or modulus inequalities, finding sets of values of x, modulus equations, modulus function properties, interval notation, or graphical representation of inequalities.",
+    "Indices and surds": "Questions involving indices, surds, rationalising the denominator (using conjugates), simplifying expressions in index form, or powers.",
+    "Factors of Polynomials": "Using factor theorem, remainder theorem, factorising cubic/quartic polynomials, finding quotients and remainders, and solving polynomial equations.",
+    "Simultaneous Equations": "Solving two equations (linear-linear, linear-quadratic) simultaneously using elimination or substitution. Finding points of intersection of a line and a curve.",
+    "Logarithmic and Exponential Functions": "Solving equations involving logarithms (log, ln) or exponentials (e^x). Using laws of logarithms, change of base, and exponential growth/decay.",
+    "Straight-Line Graphs": "Finding gradient, midpoint, perpendicular bisector, equation of a line (y=mx+c), parallel/perpendicular lines, and using linear graphs to interpret non‑linear data (e.g. plotting lg y against x).",
+    "Circular Measure": "Problems involving radians, arc length, area of sector, perimeter of sector, and area of segment.",
+    "Trigonometry": "Trigonometric identities (sin²+cos²=1, sec²=1+tan², cosec²=1+cot², etc.), solving trigonometric equations, proving identities, compound and double angle formulae, and graphs of sine/cosine/tangent (cosecant, secant, cotangent).",
+    "Permutations and Combinations": "Counting problems involving permutations (arrangements, order matters) and combinations (selections, groups, teams, committees, order does not matter), circular arrangements, and restrictions (together/separate).",
+    "Series": "Arithmetic progression (AP), geometric progression (GP), sum to infinity, common ratio/difference, binomial expansion, coefficients of specific terms in (a+b)^n, term independent of x, and binomial theorem.",
+    "Vectors": "Questions involving vectors in two dimensions: addition, subtraction, scalar product (dot product), magnitude, unit vectors, position vectors, and vector geometry in 2D.",
+    "Differentiation": "Finding derivatives (dy/dx, d²y/dx²), using chain/product/quotient rules, finding stationary/turning points, maxima/minima, tangents and normals to curves, rates of change.",
+    "Integration": "Finding indefinite and definite integrals, area under a curve, volume of revolution, and solving differential equations (simple, finding equation of the curve given dy/dx)."
+}
+
 def _build_batch_prompt(
     questions: list[dict],
     topics: list[str],
@@ -50,28 +68,42 @@ def _build_batch_prompt(
     """
     Build the user prompt for batch classification.
     """
-    kr = keyword_rules or {}
     topic_desc_list = []
-    for t in topics:
-        rules = kr.get(t, [])
-        cleaned_rules = []
-        for r in rules:
-            r_clean = r.split('|')[0].replace('\\b', '').replace('\\', '').strip()
-            if r_clean:
-                cleaned_rules.append(r_clean)
-        
-        if cleaned_rules:
-            desc = f'- "{t}": typically contains terms like {", ".join(cleaned_rules[:12])}'
-        else:
-            desc = f'- "{t}"'
-        topic_desc_list.append(desc)
+    
+    if "4037" in syllabus_name:
+        for t in topics:
+            desc = TOPIC_DESCRIPTIONS_4037.get(t, f"Questions about {t}")
+            topic_desc_list.append(f'- "{t}": {desc}')
+    else:
+        kr = keyword_rules or {}
+        for t in topics:
+            rules = kr.get(t, [])
+            cleaned_rules = []
+            for r in rules:
+                r_clean = r.split('|')[0].replace('\\b', '').replace('\\', '').strip()
+                if r_clean:
+                    cleaned_rules.append(r_clean)
+            
+            if cleaned_rules:
+                desc = f'- "{t}": typically contains terms like {", ".join(cleaned_rules[:12])}'
+            else:
+                desc = f'- "{t}"'
+            topic_desc_list.append(desc)
         
     topics_desc_str = "\n".join(topic_desc_list)
 
     lines = [
         f'You are an examiner. Classify each question from "{syllabus_name}" into exactly one of these topics:',
         topics_desc_str,
-        'If none fit, use "Unclassified".',
+        'If none fit, use "Unclassified".'
+    ]
+    
+    if "4037" in syllabus_name:
+        lines.append('')
+        lines.append('**Important:** Only choose "Inequalities" if the question explicitly involves inequalities or modulus math. If a question involves solving simultaneous equations (without inequalities) or finding intersections, do NOT classify it as this topic—choose the appropriate topic based on the content.')
+        lines.append('')
+
+    lines.extend([
         'Output a JSON object with a key "classifications" that is an array of objects.',
         'Each object must have "q_num" (int), "topic" (string), and "confidence" (float 0.0-1.0).',
         'DO NOT include any other text, markdown, or explanation. ONLY the JSON object.',
@@ -80,7 +112,7 @@ def _build_batch_prompt(
         '{"classifications": [{"q_num": 1, "topic": "Trigonometry", "confidence": 0.95}]}',
         '',
         'Now classify the following questions (each line starts with Q<number>:):'
-    ]
+    ])
 
     for q in questions:
         snippet = (q.get("text_snippet") or "").replace("\n", " ")[:1000]

@@ -27,8 +27,8 @@ Examples:
                         help='Curriculum name, e.g. "Cambridge A-Levels"')
     parser.add_argument("--subject", "-s", required=True,
                         help="Subject/syllabus code, e.g. 9709")
-    parser.add_argument("--paper", "-p", required=True,
-                        help="Paper component, e.g. 1")
+    parser.add_argument("--paper", "--papers", "-p", dest="papers", nargs="+", required=True,
+                        help="Paper component(s), e.g. 1 or 1 2")
     parser.add_argument("--variants", "-V", nargs="+", required=True,
                         help="Variant digit(s), e.g. 1 2 3")
     parser.add_argument("--series", nargs="+", required=True,

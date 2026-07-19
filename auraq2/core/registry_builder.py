@@ -63,11 +63,11 @@ BREAK_TOLERANCE = 10.0
 TRIM_MARGIN = 2.0
 
 # Maximum fraction of page width for a question-number block to occupy from the left.
-Q_NUM_X_FRACTION  = 0.12   # question numbers
+Q_NUM_X_FRACTION  = 0.18   # question numbers
 SUB_PART_X_FRACTION = 0.28  # sub-part labels like (a), (b)
 
 # Regex patterns
-_RE_Q_NUM   = re.compile(r"^(?:Question\s+)?(\d{1,2})\b", re.IGNORECASE)
+_RE_Q_NUM   = re.compile(r"^(?:Question\s+)?(\d{1,2})\b[\.\)]?\s*", re.IGNORECASE)
 _RE_SUB_ALPHA = re.compile(r"^\(?([a-z])\)\s*$", re.IGNORECASE)
 _RE_SUB_ROMAN = re.compile(r"^\(?(i{1,3}|iv|vi{0,3}|ix)\)\s*$", re.IGNORECASE)
 _RE_SUB_LABEL = re.compile(r"^\(?([a-z])\)?")               # looser: starts with (a), (b) …
@@ -309,7 +309,8 @@ def _get_ms_question_starts(
             "abbreviations"
         ]
         if any(kw in text_all for kw in generic_keywords):
-            continue
+            if _get_ms_header_y1(page) is None:
+                continue
 
         header_y1 = _get_ms_header_y1(page)
         if header_y1 is not None:
@@ -336,8 +337,8 @@ def _get_ms_question_starts(
             if vy0 <= current_hy1 or vy0 > bottom_vis:
                 continue
             # Must be close to the Question column horizontal position
-            col_min = -15.0 if not header_found_once else 5.0
-            col_max = 50.0 if not header_found_once else 40.0
+            col_min = -20.0 if not header_found_once else -10.0
+            col_max = 60.0 if not header_found_once else 60.0
             if not (col_min <= (vx0 - current_hx0) <= col_max):
                 continue
 
@@ -428,15 +429,12 @@ def _build_qp_registry(
             if m:
                 q_num = int(m.group(1))
                 if 1 <= q_num <= 30 and q_num not in seen_q:
-                    # Additional validation to prevent false positives in mathematical expressions
+                    # Let's keep a very lightweight check for mathematical expressions to prevent false positives:
+                    # Only skip if the block is short, has rest text, and contains math operators but no letters.
                     rest = blk.text[m.end():].strip()
-                    if len(blk.text) <= 15:
-                        # Apply strict mathematical checks only to short blocks (stray expressions)
-                        if re.search(r'\d', rest):
-                            continue
-                        if re.search(r'[+\-*/=]', rest):
-                            continue
-                        if rest and not re.match(r'^(?:[\.\)]?\s*\(?[a-z]\)?|[\.\)]+)\s*$', rest, re.IGNORECASE):
+                    if len(blk.text) <= 15 and rest:
+                        has_letters = bool(re.search(r'[a-zA-Z]', rest))
+                        if not has_letters and re.search(r'[+\-*/=<>]', rest):
                             continue
 
                     seen_q.add(q_num)
@@ -663,8 +661,9 @@ def _build_ms_registry(
     questions_out: list[dict] = []
     for qi, (q_num, q_page, q_vy0) in enumerate(ms_starts):
         if qi + 1 < len(ms_starts):
-            _, nxt_page, nxt_vy0 = ms_starts[qi + 1]
+            nxt_q_num, nxt_page, nxt_vy0 = ms_starts[qi + 1]
         else:
+            nxt_q_num = None
             nxt_page = len(doc) - 1
             nxt_vy0  = doc[nxt_page].rect.y1 - y_bottom
 
